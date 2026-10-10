@@ -2106,7 +2106,17 @@
   loadDrawStyle();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    // si aparece una versión nueva, recarga sola (una vez) para mostrarla
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded || isSpinning) return;
+      reloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(reg => reg.update())
+      .catch(() => {});
   }
 </script>
 </body>

@@ -1,4 +1,6 @@
-const CACHE = 'sorteo-v3';
+// v4 — la página (index.html) se pide primero a la red, así las actualizaciones aparecen solas.
+// Sin conexión usa la copia guardada. Si cambiás sw.js, subí el número de versión.
+const CACHE = 'sorteo-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -16,7 +18,10 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      // cache:'reload' evita que se guarde una copia vieja que tenga el navegador
+      .then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -29,7 +34,28 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('./index.html')))
-  );
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;      // fuentes, etc.: red normal
+  if (url.pathname.endsWith('/sw.js')) return;           // el navegador gestiona su propia actualización
+
+  const isPage = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('.html');
+
+  if (isPage) {
+    // red primero → siempre la última versión; sin red, la copia guardada
+    e.respondWith(
+      fetch(req.url, { cache: 'no-cache' })
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // íconos y manifest: caché primero
+  e.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });
