@@ -982,7 +982,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   #wheelCanvas {
-    width: min(320px, 86vw);
+    width: min(440px, 94vw);
     height: auto;
     aspect-ratio: 1 / 1;
     display: block;
@@ -990,6 +990,135 @@
     transition: transform 0.15s;
   }
   .wheel-wrap:active #wheelCanvas { transform: scale(0.97); }
+
+  .wheel-stage { position: relative; width: min(440px, 94vw); }
+  .wheel-stage #wheelCanvas { width: 100%; }
+
+  /* número grande al sortear */
+  .wheel-big {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .wheel-big span {
+    width: 58%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    background: radial-gradient(circle at 38% 32%, rgba(40,40,70,0.96), rgba(8,8,18,0.97) 75%);
+    border: 5px solid var(--accent);
+    box-shadow: 0 0 60px rgba(245,197,24,0.55), 0 12px 40px rgba(0,0,0,0.7);
+    text-shadow: 0 0 24px rgba(245,197,24,0.7), 0 4px 10px rgba(0,0,0,0.8);
+  }
+  .wheel-big.show { animation: bigPop 3.4s ease forwards; }
+
+  @keyframes bigPop {
+    0%   { opacity: 0; transform: scale(0.2) rotate(-12deg); }
+    10%  { opacity: 1; transform: scale(1.18) rotate(2deg); }
+    16%  { transform: scale(1) rotate(0); }
+    82%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.06); }
+  }
+
+  /* BOTONES DE VISTA */
+  .stage-tools { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .tool-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem; font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, transform 0.1s;
+  }
+  .tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tool-btn:active { transform: scale(0.96); }
+
+  .fs-close {
+    display: none;
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    z-index: 1000;
+    align-items: center; gap: 6px;
+    background: rgba(18,18,30,0.92);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+  .fs-close:active { transform: scale(0.95); }
+
+  /* PANTALLA COMPLETA: bola / rueda + número + participante */
+  body.fs-sorteo, body.fs-grid { overflow: hidden; }
+
+  body.fs-sorteo .stage {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    overflow-y: auto;
+    gap: 22px;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg) radial-gradient(ellipse 80% 60% at 50% -10%, #1a1a3a 0%, transparent 70%);
+  }
+  body.fs-sorteo .stage > .stage-tools,
+  body.fs-sorteo .range-bar,
+  body.fs-sorteo #podiumSection,
+  body.fs-sorteo .history-section { display: none !important; }
+
+  body.fs-sorteo .stage > div:nth-of-type(2) { margin-top: auto; }      /* centra vertical si sobra lugar */
+  body.fs-sorteo .winner-card { margin-bottom: auto; max-width: 820px; padding: 26px 24px; min-height: 120px; }
+  body.fs-sorteo .winner-label { font-size: 0.95rem; }
+  body.fs-sorteo .winner-name  { font-size: clamp(2.4rem, 10vw, 4.6rem) !important; }
+  body.fs-sorteo .winner-num   { font-size: 1.1rem; }
+  body.fs-sorteo .wheel-stage  { width: min(94vw, 58vh, 680px); }
+
+  /* pantalla apaisada / baja: bola o rueda a la izquierda, participante a la derecha */
+  @media (orientation: landscape) and (max-height: 560px) {
+    body.fs-sorteo .stage {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 12px;
+    }
+    body.fs-sorteo .stage > div:nth-of-type(2) { margin-top: 0; flex: 0 0 auto; }
+    body.fs-sorteo .winner-card { margin-bottom: 0; flex: 1 1 0; min-width: 0; max-width: 420px; }
+    body.fs-sorteo .winner-name { font-size: clamp(2rem, 6vw, 3.4rem) !important; }
+    body.fs-sorteo .wheel-stage { width: min(46vw, 86vh, 560px); }
+  }
+
+  /* PLANILLA SOLA */
+  body.fs-grid #gridPanel {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    max-width: none;
+    border-radius: 0;
+    overflow: auto;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+  }
+  body.fs-grid #gridPanel .grid-table { font-size: 1rem; }
+  body.fs-grid #gridPanel .num-chip   { font-size: 0.95rem; padding: 2px 8px; }
+  body.fs-grid #gridPanel input.name-inp { font-size: 1rem; }
 
 </style>
 </head>
@@ -1105,6 +1234,11 @@
   <!-- STAGE: bola + resultados -->
   <div class="stage">
 
+    <div class="stage-tools">
+      <button class="tool-btn" onclick="openFS('sorteo')">⛶ Pantalla completa</button>
+      <button class="tool-btn" onclick="openFS('grid')">📋 Ver planilla sola</button>
+    </div>
+
     <div style="display:flex;align-items:center;gap:20px;flex-direction:column;">
       <div class="range-bar">
         <div class="range-chip">
@@ -1129,7 +1263,10 @@
       </div>
 
       <div class="wheel-wrap hidden" id="wheelWrap" onclick="spin()">
-        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        <div class="wheel-stage">
+          <canvas id="wheelCanvas" width="640" height="640"></canvas>
+          <div class="wheel-big" id="wheelBig"><span id="wheelBigNum"></span></div>
+        </div>
         <span class="ball-hint" id="wheelHint">Tocá para girar</span>
       </div>
     </div>
@@ -1157,12 +1294,14 @@
   </div>
 
   <!-- PLANILLA ABAJO -->
-  <div class="panel">
+  <div class="panel" id="gridPanel">
     <div class="panel-title">Planilla de participantes</div>
     <div id="participantGrid"><span class="empty-msg">Generá la planilla para cargar participantes</span></div>
   </div>
 
 </div>
+
+<button class="fs-close" id="fsClose" onclick="closeFS()">✕ Cerrar</button>
 
 <!-- confetti container -->
 <div class="confetti-container" id="confettiContainer"></div>
@@ -1305,6 +1444,7 @@
     ballNum.textContent = num;
     ballNum.style.opacity = '1';
     setWheelCenter(num);
+    if (drawStyle === 'wheel') showWheelBig(num);
 
     // mark chip as drawn with chosen icon
     const chip = document.getElementById(`nc-${num}`);
@@ -1471,6 +1611,7 @@
     completedRows = [];
     document.getElementById('ballNum').textContent = '?';
     setWheelCenter('?');
+    hideWheelBig();
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
     document.getElementById('podiumSection').style.display = 'none';
     document.getElementById('podiumList').innerHTML = '';
@@ -1705,7 +1846,7 @@
   }
 
   // ── RUEDA DE LA FORTUNA ──
-  const WHEEL_MAX_SEGS = 24;
+  const WHEEL_MAX_SEGS = 200;   // hasta este total se muestran TODOS los números
   let currentColorHex = '#1a6fd4';
   let drawStyle   = 'ball';
   let wheelRot    = 0;
@@ -1743,10 +1884,11 @@
     const cv = document.getElementById('wheelCanvas');
     if (!cv) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const SIZE = 320;
-    if (cv.width !== SIZE * dpr) { cv.width = SIZE * dpr; cv.height = SIZE * dpr; }
+    const SIZE = 320;                       // unidades lógicas de dibujo
+    const PX   = Math.round(SIZE * 2 * dpr); // píxeles reales del canvas
+    if (cv.width !== PX) { cv.width = PX; cv.height = PX; }
     const ctx = cv.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(PX / SIZE, 0, 0, PX / SIZE, 0, 0);
     ctx.clearRect(0, 0, SIZE, SIZE);
 
     if (!wheelLabels.length) wheelLabels = idleWheelLabels();
@@ -1755,6 +1897,9 @@
     const seg = (Math.PI * 2) / n;
     const cx = SIZE / 2, cy = SIZE / 2 + 6;
     const R  = 138;
+
+    // tamaño de letra para rangos grandes (dos anillos: cada uno tiene el doble de arco)
+    const lblFs = Math.max(5, Math.min(14, Math.floor(2 * seg * 92 * 0.8)));
 
     const base = hexToRgb(currentColorHex);
     const colA = lighten(base, 0.10), colB = darken(base, 0.45), colC = lighten(base, 0.45);
@@ -1772,18 +1917,26 @@
       let col = (i % 2 === 0) ? colA : colB;
       if (n % 2 === 1 && i === n - 1) col = colC;
       ctx.fillStyle = rgb(col); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = n > 40 ? 0.5 : 1.5; ctx.stroke();
 
       // número
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(a0 + seg / 2);
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      const fs = n > 16 ? 14 : (n > 10 ? 17 : 21);
-      ctx.font = `700 ${fs}px "Playfair Display", Georgia, serif`;
       ctx.fillStyle = '#fff';
-      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
-      ctx.fillText(String(labels[i]), R - 14, 0);
+      if (n <= 24) {
+        const fs = n > 16 ? 14 : (n > 10 ? 17 : 21);
+        ctx.font = `700 ${fs}px "Playfair Display", Georgia, serif`;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
+        ctx.fillText(String(labels[i]), R - 14, 0);
+      } else {
+        // muchos números: letra más chica y dos anillos alternados para que entren todos
+        ctx.font = `700 ${lblFs}px Outfit, Arial, sans-serif`;
+        const rOut = R - 8;
+        const rIn  = R - 8 - lblFs * 2.1;
+        ctx.fillText(String(labels[i]), (i % 2 === 0) ? rOut : rIn, 0);
+      }
       ctx.restore();
     }
 
@@ -1824,6 +1977,7 @@
   }
 
   function spinWheel(allowRepeat, total) {
+    hideWheelBig();
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">Sorteando…</span>';
     setWheelCenterQuiet('…');
 
@@ -1853,6 +2007,25 @@
     requestAnimationFrame(frame);
   }
 
+  function showWheelBig(num) {
+    const box = document.getElementById('wheelBig');
+    const txt = document.getElementById('wheelBigNum');
+    const cv  = document.getElementById('wheelCanvas');
+    if (!box || !txt) return;
+    const d = String(num).length;
+    const circle = cv.clientWidth * 0.58;
+    txt.textContent = num;
+    txt.style.fontSize = Math.round(circle * (d <= 2 ? 0.52 : d === 3 ? 0.40 : 0.31)) + 'px';
+    box.classList.remove('show');
+    void box.offsetWidth;
+    box.classList.add('show');
+  }
+
+  function hideWheelBig() {
+    const box = document.getElementById('wheelBig');
+    if (box) box.classList.remove('show');
+  }
+
   function setWheelCenterQuiet(v) { wheelCenter = String(v); }
 
   function setDrawStyle(st, silent) {
@@ -1870,6 +2043,54 @@
     try { st = localStorage.getItem('sorteo_draw_style') || 'ball'; } catch(e) {}
     setDrawStyle(st, true);
   }
+
+  // ── PANTALLA COMPLETA / PLANILLA SOLA ──
+  let fsMode = null;   // 'sorteo' | 'grid' | null
+
+  function applyFsZoom() {
+    const bw = document.querySelector('.ball-wrap');
+    if (!bw) return;
+    if (fsMode !== 'sorteo') { bw.style.zoom = ''; return; }
+    const land = window.innerWidth > window.innerHeight && window.innerHeight <= 560;
+    const z = land
+      ? Math.max(0.8, Math.min(2.2, Math.min(window.innerWidth * 0.42 / 270, window.innerHeight * 0.78 / 300)))
+      : Math.max(1, Math.min(2.6, Math.min(window.innerWidth * 0.86 / 270, window.innerHeight * 0.42 / 300)));
+    bw.style.zoom = z;
+  }
+
+  function nativeFs() { return document.fullscreenElement || document.webkitFullscreenElement; }
+
+  function openFS(mode) {
+    closeFS(true);
+    fsMode = mode;
+    document.body.classList.add(mode === 'grid' ? 'fs-grid' : 'fs-sorteo');
+    document.getElementById('fsClose').style.display = 'flex';
+    applyFsZoom();
+    window.scrollTo(0, 0);
+    try {
+      const el = document.documentElement;
+      const rf = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (rf && !nativeFs()) { const r = rf.call(el); if (r && r.catch) r.catch(() => {}); }
+    } catch (e) {}
+  }
+
+  function closeFS(keepNative) {
+    document.body.classList.remove('fs-sorteo', 'fs-grid');
+    fsMode = null;
+    document.getElementById('fsClose').style.display = 'none';
+    applyFsZoom();
+    if (!keepNative) {
+      try {
+        if (nativeFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } catch (e) {}
+    }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && fsMode) closeFS(); });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
+    document.addEventListener(ev, () => { if (!nativeFs() && fsMode) closeFS(true); }));
+  window.addEventListener('resize', applyFsZoom);
+  window.addEventListener('orientationchange', () => setTimeout(applyFsZoom, 250));
 
   loadFontSize();
   loadBallColor();
