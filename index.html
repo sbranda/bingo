@@ -951,6 +951,46 @@
   .icon-opt:hover  { transform: scale(1.15); border-color: var(--muted); }
   .icon-opt.active { border-color: #fff; background: rgba(255,255,255,0.1); transform: scale(1.1); }
 
+  /* ESTILO DE SORTEO */
+  .hidden { display: none !important; }
+  .style-list { display: flex; gap: 10px; flex-wrap: wrap; }
+  .style-opt {
+    flex: 1; min-width: 120px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem; font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .style-opt .emo { font-size: 1.4rem; line-height: 1; }
+  .style-opt:hover { border-color: var(--muted); }
+  .style-opt:active { transform: scale(0.97); }
+  .style-opt.active { border-color: var(--accent); background: rgba(245,197,24,0.08); color: var(--accent); }
+
+  /* RUEDA */
+  .wheel-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #wheelCanvas {
+    width: min(320px, 86vw);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    display: block;
+    filter: drop-shadow(0 18px 38px var(--ball-glow)) drop-shadow(0 4px 10px rgba(0,0,0,0.7));
+    transition: transform 0.15s;
+  }
+  .wheel-wrap:active #wheelCanvas { transform: scale(0.97); }
+
 </style>
 </head>
 <body>
@@ -1026,9 +1066,21 @@
     <!-- SEPARADOR -->
     <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
 
-    <!-- FILA 3: color de bola -->
+    <!-- FILA 3: estilo de sorteo -->
     <div>
-      <div class="section-label">Color de bola</div>
+      <div class="section-label">Estilo de sorteo</div>
+      <div class="style-list" id="styleList">
+        <div class="style-opt active" data-style="ball" onclick="setDrawStyle('ball')"><span class="emo">🎱</span> Bola</div>
+        <div class="style-opt" data-style="wheel" onclick="setDrawStyle('wheel')"><span class="emo">🎡</span> Rueda de la fortuna</div>
+      </div>
+    </div>
+
+    <!-- SEPARADOR -->
+    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+
+    <!-- FILA 4: color -->
+    <div>
+      <div class="section-label">Color (bola y rueda)</div>
       <div class="color-swatches" id="swatches">
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#6ab4ff,#1a6fd4,#002b80)" data-color="#1a6fd4" onclick="setBallColor(this)" title="Azul"></div>
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#ff6b6b,#d41a1a,#5a0000)" data-color="#d41a1a" onclick="setBallColor(this)" title="Rojo"></div>
@@ -1074,6 +1126,11 @@
           <span class="ball-number" id="ballNum">?</span>
         </div>
         <span class="ball-hint" id="ballHint">Tocá para sortear</span>
+      </div>
+
+      <div class="wheel-wrap hidden" id="wheelWrap" onclick="spin()">
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        <span class="ball-hint" id="wheelHint">Tocá para girar</span>
       </div>
     </div>
 
@@ -1143,6 +1200,8 @@
     history = [];
     renderHistory();
     document.getElementById('ballNum').textContent = '?';
+    wheelLabels = idleWheelLabels();
+    setWheelCenter('?');
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
 
     const total      = mx - mn + 1;
@@ -1208,6 +1267,9 @@
     }
 
     isSpinning = true;
+
+    if (drawStyle === 'wheel') { spinWheel(allowRepeat, total); return; }
+
     const ball    = document.getElementById('ball');
     const ballNum = document.getElementById('ballNum');
 
@@ -1229,10 +1291,12 @@
     }, 70);
   }
 
-  function finalize(allowRepeat, total) {
-    let num;
-    do { num = Math.floor(Math.random() * total) + gridMin; }
-    while (!allowRepeat && usedNumbers.has(num) && usedNumbers.size < total);
+  function finalize(allowRepeat, total, forcedNum) {
+    let num = forcedNum;
+    if (num === undefined) {
+      do { num = Math.floor(Math.random() * total) + gridMin; }
+      while (!allowRepeat && usedNumbers.has(num) && usedNumbers.size < total);
+    }
     if (!allowRepeat) usedNumbers.add(num);
 
     const ball    = document.getElementById('ball');
@@ -1240,6 +1304,7 @@
     ball.classList.remove('spinning');
     ballNum.textContent = num;
     ballNum.style.opacity = '1';
+    setWheelCenter(num);
 
     // mark chip as drawn with chosen icon
     const chip = document.getElementById(`nc-${num}`);
@@ -1405,6 +1470,7 @@
     usedNumbers.clear();
     completedRows = [];
     document.getElementById('ballNum').textContent = '?';
+    setWheelCenter('?');
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
     document.getElementById('podiumSection').style.display = 'none';
     document.getElementById('podiumList').innerHTML = '';
@@ -1583,6 +1649,8 @@
     root.style.setProperty('--ball-glow-bright', rgba(c,  0.55));
     root.style.setProperty('--ball-num-shadow',  rgba(d3, 0.65));
     root.style.setProperty('--ball-num-shadow2', rgba(d3, 0.50));
+    currentColorHex = hex;
+    if (typeof drawWheel === 'function') drawWheel();
     try { localStorage.setItem('sorteo_ball_color', hex); } catch(e) {}
   }
 
@@ -1636,6 +1704,173 @@
     } catch(e) {}
   }
 
+  // ── RUEDA DE LA FORTUNA ──
+  const WHEEL_MAX_SEGS = 24;
+  let currentColorHex = '#1a6fd4';
+  let drawStyle   = 'ball';
+  let wheelRot    = 0;
+  let wheelLabels = [];
+  let wheelCenter = '?';
+
+  function idleWheelLabels() {
+    const total = gridMax - gridMin + 1;
+    const n = Math.max(2, Math.min(total, WHEEL_MAX_SEGS));
+    if (total <= WHEEL_MAX_SEGS) {
+      const arr = [];
+      for (let v = gridMin; v <= gridMax; v++) arr.push(v);
+      return arr.length >= 2 ? arr : [gridMin, gridMin];
+    }
+    return Array.from({ length: n }, (_, i) => gridMin + Math.round(i * (total - 1) / (n - 1)));
+  }
+
+  // etiquetas para un giro: el número sorteado queda en un segmento; devuelve su índice
+  function labelsForTarget(target) {
+    const total = gridMax - gridMin + 1;
+    if (total <= WHEEL_MAX_SEGS) {
+      const arr = [];
+      for (let v = gridMin; v <= gridMax; v++) arr.push(v);
+      return { labels: arr.length >= 2 ? arr : [gridMin, gridMin], index: target - gridMin };
+    }
+    const set = new Set([target]);
+    while (set.size < WHEEL_MAX_SEGS) set.add(Math.floor(Math.random() * total) + gridMin);
+    const labels = Array.from(set).sort((a, b) => a - b);
+    return { labels, index: labels.indexOf(target) };
+  }
+
+  function setWheelCenter(v) { wheelCenter = String(v); drawWheel(); }
+
+  function drawWheel() {
+    const cv = document.getElementById('wheelCanvas');
+    if (!cv) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const SIZE = 320;
+    if (cv.width !== SIZE * dpr) { cv.width = SIZE * dpr; cv.height = SIZE * dpr; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    if (!wheelLabels.length) wheelLabels = idleWheelLabels();
+    const labels = wheelLabels;
+    const n   = labels.length;
+    const seg = (Math.PI * 2) / n;
+    const cx = SIZE / 2, cy = SIZE / 2 + 6;
+    const R  = 138;
+
+    const base = hexToRgb(currentColorHex);
+    const colA = lighten(base, 0.10), colB = darken(base, 0.45), colC = lighten(base, 0.45);
+
+    // aro exterior
+    const rim = ctx.createRadialGradient(cx, cy, R - 4, cx, cy, R + 14);
+    rim.addColorStop(0, '#f5c518'); rim.addColorStop(0.5, '#b8860b'); rim.addColorStop(1, '#6b4a00');
+    ctx.beginPath(); ctx.arc(cx, cy, R + 12, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
+
+    // segmentos
+    for (let i = 0; i < n; i++) {
+      const a0 = wheelRot + i * seg - Math.PI / 2;
+      const a1 = a0 + seg;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a1); ctx.closePath();
+      let col = (i % 2 === 0) ? colA : colB;
+      if (n % 2 === 1 && i === n - 1) col = colC;
+      ctx.fillStyle = rgb(col); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // número
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(a0 + seg / 2);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      const fs = n > 16 ? 14 : (n > 10 ? 17 : 21);
+      ctx.font = `700 ${fs}px "Playfair Display", Georgia, serif`;
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
+      ctx.fillText(String(labels[i]), R - 14, 0);
+      ctx.restore();
+    }
+
+    // brillo
+    const gl = ctx.createRadialGradient(cx - 40, cy - 55, 10, cx, cy, R);
+    gl.addColorStop(0, 'rgba(255,255,255,0.28)'); gl.addColorStop(0.5, 'rgba(255,255,255,0)');
+    gl.addColorStop(1, 'rgba(0,0,0,0.30)');
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = gl; ctx.fill();
+
+    // lamparitas del aro
+    const bulbs = 24;
+    for (let i = 0; i < bulbs; i++) {
+      const a = wheelRot * 0.0 + (i / bulbs) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * (R + 6), cy + Math.sin(a) * (R + 6), 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = (i % 2 === 0) ? '#fff6c2' : '#ffd84d'; ctx.fill();
+    }
+
+    // centro
+    const hub = ctx.createRadialGradient(cx - 8, cy - 10, 4, cx, cy, 36);
+    hub.addColorStop(0, '#2a2a44'); hub.addColorStop(1, '#0a0a12');
+    ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI * 2); ctx.fillStyle = hub; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#f5c518'; ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#f5c518';
+    ctx.font = `900 ${wheelCenter.length > 3 ? 17 : 24}px "Playfair Display", Georgia, serif`;
+    ctx.fillText(wheelCenter, cx, cy + 1);
+
+    // puntero fijo (arriba)
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, cy - R - 20);
+    ctx.lineTo(cx + 14, cy - R - 20);
+    ctx.lineTo(cx, cy - R + 10);
+    ctx.closePath();
+    ctx.fillStyle = '#ff4f4f'; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+  }
+
+  function spinWheel(allowRepeat, total) {
+    document.getElementById('winnerCard').innerHTML = '<span class="no-winner">Sorteando…</span>';
+    setWheelCenterQuiet('…');
+
+    let num;
+    do { num = Math.floor(Math.random() * total) + gridMin; }
+    while (!allowRepeat && usedNumbers.has(num) && usedNumbers.size < total);
+
+    const { labels, index } = labelsForTarget(num);
+    wheelLabels = labels;
+
+    const n = labels.length, seg = (Math.PI * 2) / n, TAU = Math.PI * 2;
+    const jitter = (Math.random() - 0.5) * 0.7;            // cae en cualquier parte del segmento
+    const targetNorm = (((-(index + 0.5 + jitter) * seg) % TAU) + TAU) % TAU;
+    const start = wheelRot;
+    let final = Math.floor(start / TAU) * TAU + targetNorm + TAU * (5 + Math.floor(Math.random() * 3));
+    while (final < start + TAU * 4) final += TAU;
+
+    const dur = 4200, t0 = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - t, 4);                     // frena suave al final
+      wheelRot = start + (final - start) * e;
+      drawWheel();
+      if (t < 1) requestAnimationFrame(frame);
+      else { wheelRot = final % TAU; setTimeout(() => finalize(allowRepeat, total, num), 250); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function setWheelCenterQuiet(v) { wheelCenter = String(v); }
+
+  function setDrawStyle(st, silent) {
+    if (isSpinning) return;
+    drawStyle = (st === 'wheel') ? 'wheel' : 'ball';
+    document.querySelectorAll('.style-opt').forEach(o => o.classList.toggle('active', o.dataset.style === drawStyle));
+    document.querySelector('.ball-wrap').classList.toggle('hidden', drawStyle === 'wheel');
+    document.getElementById('wheelWrap').classList.toggle('hidden', drawStyle !== 'wheel');
+    if (drawStyle === 'wheel') { wheelLabels = idleWheelLabels(); drawWheel(); }
+    if (!silent) { try { localStorage.setItem('sorteo_draw_style', drawStyle); } catch(e) {} }
+  }
+
+  function loadDrawStyle() {
+    let st = 'ball';
+    try { st = localStorage.getItem('sorteo_draw_style') || 'ball'; } catch(e) {}
+    setDrawStyle(st, true);
+  }
+
   loadFontSize();
   loadBallColor();
   loadMarkIcon();
@@ -1646,6 +1881,8 @@
   if (!_loaded) buildGrid();
   displayMin.textContent = document.getElementById('minVal').value;
   displayMax.textContent = document.getElementById('maxVal').value;
+  wheelLabels = idleWheelLabels();
+  loadDrawStyle();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
