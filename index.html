@@ -127,6 +127,20 @@
   }
   body.fs-sorteo .app-footer, body.fs-grid .app-footer, body.fs-history .app-footer { display: none; }
 
+  .tagline {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: clamp(1.05rem, 4.2vw, 1.5rem);
+    color: #fff3a8;
+    text-align: center;
+    margin: 6px 16px 10px;
+    text-shadow: 0 0 24px rgba(245,197,24,0.35);
+    overflow-wrap: anywhere;
+  }
+  .tagline:empty { display: none; }
+  body.fs-sorteo .tagline, body.fs-grid .tagline, body.fs-history .tagline { display: none; }
+
   .subtitle {
     color: var(--muted);
     font-size: 0.78rem;
@@ -1504,6 +1518,7 @@
 <body>
 
 <h1>🎱 BINGO EN VIVO</h1>
+<p class="tagline" id="tagline"></p>
 <p class="subtitle">Presioná la bola para girar</p>
 <div class="install-wrap"><button type="button" class="install-btn" id="installBtn" onclick="installApp()" hidden>📲 Instalar la app</button></div>
 
@@ -1584,6 +1599,15 @@
 
     <!-- SEPARADOR -->
     <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
+
+    <!-- FILA: frase debajo del título -->
+    <div>
+      <div class="section-label">Frase debajo del título</div>
+      <input type="text" id="taglineInput" maxlength="80" placeholder="Ej: ¡Que la suerte te acompañe!" oninput="saveTagline()" autocomplete="off">
+    </div>
+
+    <!-- SEPARADOR -->
+    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
 
     <!-- FILA: mensaje final -->
     <div>
@@ -3215,10 +3239,28 @@
   function saveThanks() {
     try { localStorage.setItem('sorteo_thanks', document.getElementById('thanksInput').value); } catch(e) {}
   }
+  // ── FRASE DEBAJO DEL TÍTULO ──
+  const DEFAULT_TAGLINE = '¡Que la suerte te acompañe!';
+  function applyTagline(v) {
+    document.getElementById('tagline').textContent = (v || '').trim();
+  }
+  function saveTagline() {
+    const v = document.getElementById('taglineInput').value;
+    applyTagline(v);
+    try { localStorage.setItem('sorteo_tagline', v); } catch(e) {}
+  }
+  function loadTagline() {
+    let v = DEFAULT_TAGLINE;
+    try { const st = localStorage.getItem('sorteo_tagline'); if (st !== null) v = st; } catch(e) {}
+    document.getElementById('taglineInput').value = v;
+    applyTagline(v);
+  }
+
   function loadThanks() {
     try { const v = localStorage.getItem('sorteo_thanks'); if (v) document.getElementById('thanksInput').value = v; } catch(e) {}
   }
 
+  loadTagline();
   loadFontSize();
   loadBallColor();
   loadMarkIcon();
