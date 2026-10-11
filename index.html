@@ -138,6 +138,8 @@
     text-shadow: 0 0 24px rgba(245,197,24,0.35);
     overflow-wrap: anywhere;
   }
+  .tagline::before { content: '🍀\00a0'; font-style: normal; }
+  .tagline::after  { content: '\00a0🍀'; font-style: normal; }
   .tagline:empty { display: none; }
   body.fs-sorteo .tagline, body.fs-grid .tagline, body.fs-history .tagline { display: none; }
 
