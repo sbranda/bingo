@@ -276,9 +276,21 @@
     flex-direction: column;
     align-items: center;
     perspective: 600px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    outline: none;
+  }
+  .ball-wrap *, .ball-wrap:focus, .ball-wrap:focus-visible, .ball:focus, .ball:focus-visible {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .ball {
+    will-change: transform;
+    backface-visibility: hidden;
     width: 260px;
     height: 260px;
     border-radius: 50%;
@@ -384,19 +396,20 @@
     50%       { transform: translateX(-50%) scaleX(0.88); opacity: 0.6; }
   }
 
-  .ball:hover {
-    transform: translateY(-6px) scale(1.04);
-    filter: drop-shadow(0 32px 55px var(--ball-glow-bright)) drop-shadow(0 4px 12px rgba(0,0,0,0.75));
+  @media (hover: hover) and (pointer: fine) {
+    .ball:not(.spinning):hover {
+      transform: translateY(-6px) scale(1.04);
+      filter: drop-shadow(0 32px 55px var(--ball-glow-bright)) drop-shadow(0 4px 12px rgba(0,0,0,0.75));
+    }
   }
 
-  .ball:active {
-    transform: scale(0.95) translateY(3px);
-    filter: drop-shadow(0 8px 20px var(--ball-glow)) drop-shadow(0 2px 6px rgba(0,0,0,0.85));
+  .ball:not(.spinning):active {
+    transform: scale(0.97);
   }
 
   .ball.spinning {
-    animation: ballSpin 0.5s cubic-bezier(0.4,0,0.6,1) infinite;
-    filter: drop-shadow(0 16px 38px var(--ball-glow-bright)) drop-shadow(0 4px 12px rgba(0,0,0,0.75)) brightness(1.08);
+    transition: none;
+    filter: drop-shadow(0 16px 38px var(--ball-glow-bright)) drop-shadow(0 4px 12px rgba(0,0,0,0.75)) brightness(1.06);
   }
 
   @keyframes ballSpin {
@@ -1671,22 +1684,64 @@
     const ball    = document.getElementById('ball');
     const ballNum = document.getElementById('ballNum');
 
-    ball.classList.remove('spinning');
-    void ball.offsetWidth;
     ball.classList.add('spinning');
-
-    ballNum.style.opacity = '0';
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">Sorteando…</span>';
 
-    let rolls = 0;
-    const iv = setInterval(() => {
-      let n;
-      do { n = Math.floor(Math.random() * total) + gridMin; }
-      while (!allowRepeat && usedNumbers.has(n) && usedNumbers.size < total);
-      ballNum.textContent = n;
-      ballNum.style.opacity = '0.45';
-      if (++rolls >= 18) { clearInterval(iv); finalize(allowRepeat, total); }
-    }, 70);
+    // número final decidido de antemano
+    let target;
+    do { target = Math.floor(Math.random() * total) + gridMin; }
+    while (!allowRepeat && usedNumbers.has(target) && usedNumbers.size < total);
+
+    const shadow  = ball.querySelector('.ball-shadow');
+    const SHAKE   = 2600;   // sacudida + ruleta
+    const SETTLE  = 650;    // rebote final amortiguado
+    const t0 = performance.now();
+    const ease = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+    let nextRoll = 0;
+
+    function frame(now) {
+      const t = now - t0;
+      let x = 0, y = 0, r = 0, sc = 1;
+      if (t < SHAKE) {
+        const p = t / SHAKE;
+        // energía: sube suave, se sostiene y baja suave
+        const amp = Math.sin(Math.PI * Math.min(1, p * 1.0)) ** 0.7;
+        const f = 1 + (1 - p) * 0.0;
+        x  = Math.sin(t / 95)  * 9  * amp + Math.sin(t / 53) * 3 * amp;
+        y  = -Math.abs(Math.sin(t / 130)) * 16 * amp;
+        r  = Math.sin(t / 110) * 7 * amp;
+        sc = 1 + Math.sin(t / 130) * 0.025 * amp;
+        // ruleta de números que se va frenando
+        if (t >= nextRoll) {
+          let n;
+          do { n = Math.floor(Math.random() * total) + gridMin; }
+          while (n === +ballNum.textContent && total > 1);
+          ballNum.textContent = n;
+          nextRoll = t + 55 + 260 * ease(p);
+        }
+      } else if (t < SHAKE + SETTLE) {
+        if (ballNum.textContent != target) ballNum.textContent = target;
+        const q = (t - SHAKE) / SETTLE;
+        const d = Math.exp(-5 * q);
+        y  = -Math.sin(q * Math.PI * 3) * 14 * d;
+        sc = 1 + Math.sin(q * Math.PI * 3) * 0.035 * d;
+        x = 0; r = Math.sin(q * Math.PI * 2) * 2 * d;
+      } else {
+        ball.style.transform = '';
+        if (shadow) { shadow.style.animation = ''; shadow.style.opacity = ''; shadow.style.transform = ''; }
+        finalize(allowRepeat, total, target);
+        return;
+      }
+      ball.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+      if (shadow) {
+        shadow.style.animation = 'none';
+        const k = 1 - Math.min(1, Math.abs(y) / 40);
+        shadow.style.transform = `translateX(-50%) scaleX(${(0.7 + 0.3 * k).toFixed(3)})`;
+        shadow.style.opacity = (0.45 + 0.4 * k).toFixed(2);
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
 
   function finalize(allowRepeat, total, forcedNum) {
