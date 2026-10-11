@@ -635,7 +635,67 @@
   }
 
   .btn-reset:hover { border-color: var(--accent2); color: var(--accent2); }
-  .undo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.undo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* tira de últimos números */
+  .recent-strip {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 440px;
+    pointer-events: none;
+  }
+  .recent-strip.has { display: flex; }
+  .recent-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .recent-list {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 8px;
+  }
+  .recent-chip {
+    min-width: 2.6em;
+    padding: 0.35em 0.7em;
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #fff;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    opacity: 0.85;
+  }
+  .recent-chip.win { border-color: var(--accent); }
+  .recent-chip.latest {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(245,197,24,0.08);
+    opacity: 1;
+    animation: chipIn .35s ease-out;
+  }
+  @keyframes chipIn { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  body.fs-sorteo .recent-chip { font-size: 1.35rem; }
+  /* el botón de sonido no tapa los botones de pantalla completa */
+  body.fs-sorteo .snd-btn, body.fs-grid .snd-btn, body.fs-history .snd-btn {
+    left: auto;
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    top: calc(62px + env(safe-area-inset-top, 0px));
+  }
+  @media (orientation: landscape) and (max-height: 560px) {
+    body.fs-sorteo .recent-strip { gap: 4px; }
+    body.fs-sorteo .recent-label { display: none; }
+    body.fs-sorteo .recent-chip { font-size: 1rem; padding: 0.2em 0.55em; }
+    body.fs-sorteo .recent-chip:nth-child(n+6) { display: none; }
+    body.fs-sorteo .fs-hist { left: auto; right: calc(14px + env(safe-area-inset-right, 0px)); }
+  }
+  body.fs-sorteo .recent-label { font-size: 0.8rem; }
 
   .empty-msg {
     color: var(--muted);
@@ -1529,6 +1589,8 @@
         </div>
         <span class="ball-hint" id="wheelHint">Tocá para girar</span>
       </div>
+
+      <div class="recent-strip" id="recentStrip" aria-label="Últimos números sorteados"></div>
     </div>
 
     <!-- GANADOR -->
@@ -2061,8 +2123,22 @@
     document.getElementById('gridWinners').classList.remove('has');
   }
 
+  const RECENT_MAX = 8;
+  function renderRecent() {
+    const el = document.getElementById('recentStrip');
+    if (!el) return;
+    if (!history.length) { el.classList.remove('has'); el.innerHTML = ''; return; }
+    const items = history.slice(0, RECENT_MAX);
+    el.innerHTML = '<span class="recent-label">Últimos números</span><div class="recent-list">' +
+      items.map((h, i) =>
+        `<span class="recent-chip${i === 0 ? ' latest' : ''}${h.rowComplete ? ' win' : ''}" title="${h.name ? String(h.name).replace(/"/g, '&quot;') : ''}">${h.num}${h.rowComplete ? ' 🏆' : ''}</span>`
+      ).join('') + '</div>';
+    el.classList.add('has');
+  }
+
   function renderHistory() {
     updateUndoBtns();
+    renderRecent();
     const list = document.getElementById('historyList');
     if (!history.length) { list.innerHTML = '<span class="empty-msg">Sin sorteos aún</span>'; return; }
     list.innerHTML = history.map(h =>
@@ -2571,7 +2647,7 @@
     if (fsMode !== 'sorteo') { bw.style.zoom = ''; return; }
     const land = window.innerWidth > window.innerHeight && window.innerHeight <= 560;
     const z = land
-      ? Math.max(0.8, Math.min(2.2, Math.min(window.innerWidth * 0.42 / 270, window.innerHeight * 0.78 / 300)))
+      ? Math.max(0.8, Math.min(2.2, Math.min(window.innerWidth * 0.42 / 270, window.innerHeight * 0.62 / 300)))
       : Math.max(1, Math.min(2.6, Math.min(window.innerWidth * 0.86 / 270, window.innerHeight * 0.42 / 300)));
     bw.style.zoom = z;
   }
