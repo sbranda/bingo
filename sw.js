@@ -1,6 +1,6 @@
 // v4 — la página (index.html) se pide primero a la red, así las actualizaciones aparecen solas.
 // Sin conexión usa la copia guardada. Si cambiás sw.js, subí el número de versión.
-const CACHE = 'sorteo-v5';
+const CACHE = 'sorteo-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const ASSETS = [
   './icon-192.png',
   './icon-384.png',
   './icon-512.png',
+  './icon-maskable-512.png',
   './apple-touch-icon.png'
 ];
 
