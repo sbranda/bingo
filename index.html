@@ -50,6 +50,59 @@
     text-shadow: 0 0 40px rgba(245,197,24,0.3);
   }
 
+  /* lista de control previa al sorteo */
+  .preflight {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .preflight.ok { padding: 10px 16px; border-color: rgba(129,199,132,0.45); }
+  .pf-head {
+    font-family: 'Playfair Display', serif; font-weight: 700;
+    color: var(--accent); font-size: 1rem; letter-spacing: 1px;
+  }
+  .preflight.ok .pf-head { color: #81c784; font-size: 0.95rem; }
+  .pf-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; text-align: left; cursor: pointer;
+    font-family: 'Outfit', sans-serif; font-size: 0.88rem; color: #fff;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pf-item .pf-ic { font-size: 1.1rem; width: 1.4em; text-align: center; flex: 0 0 auto; }
+  .pf-item .pf-tx { flex: 1; }
+  .pf-item .pf-sub { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .pf-item.todo { border-color: rgba(245,197,24,0.55); }
+  .pf-item.todo .pf-sub { color: var(--accent); }
+  .pf-item.done .pf-sub, .pf-item.skip .pf-sub { color: var(--muted); }
+  .pf-item.skip { opacity: 0.6; }
+  body.fs-sorteo .preflight, body.fs-grid .preflight, body.fs-history .preflight { display: none; }
+
+  .pf-modal {
+    display: none; position: fixed; inset: 0; z-index: 3000;
+    background: rgba(5,5,12,0.78); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .pf-modal.show { display: flex; }
+  .pf-box {
+    width: 100%; max-width: 380px; background: var(--surface);
+    border: 1px solid var(--accent); border-radius: 18px; padding: 22px 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    font-family: 'Outfit', sans-serif; color: #fff;
+  }
+  .pf-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.25rem; color: var(--accent); margin-bottom: 10px; }
+  .pf-msg { font-size: 0.92rem; line-height: 1.5; margin-bottom: 18px; }
+  .pf-msg ul { margin: 8px 0 0 1.1em; padding: 0; }
+  .pf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pf-btn {
+    flex: 1 1 140px; padding: 12px 14px; border-radius: 10px; cursor: pointer;
+    font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;
+    background: transparent; color: #fff; border: 1px solid var(--border);
+  }
+  .pf-btn.pf-primary { background: var(--accent); color: #111; border-color: var(--accent); }
+
   @media (max-width: 560px) { h1 { margin-top: 46px; } }
 
   .app-footer {
@@ -1445,8 +1498,11 @@
 
 <div class="layout">
 
+  <!-- LISTA DE CONTROL -->
+  <div class="preflight" id="preflight" aria-live="polite"></div>
+
   <!-- PANEL CONFIG -->
-  <div class="panel">
+  <div class="panel" id="panelConfig">
     <div class="panel-title">Configuración</div>
 
     <!-- FILA 1: inputs + botones + toggle + tamaño -->
@@ -1557,7 +1613,7 @@
   </div>
 
   <!-- PREMIOS -->
-  <div class="panel">
+  <div class="panel" id="panelPrizes">
     <div class="panel-title">Premios</div>
     <div id="prizeList"></div>
     <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
@@ -1672,6 +1728,17 @@
 <button class="fs-hist" id="fsHist" onclick="openFS('history')">🕘 Historial</button>
 <button class="fs-swap" id="fsSwap" onclick="swapFS()"></button>
 <button class="back-draw" id="backDraw" onclick="backToDraw()">↑ Volver al sorteo</button>
+
+<div class="pf-modal" id="pfModal" role="dialog" aria-modal="true" aria-labelledby="pfTitle">
+  <div class="pf-box">
+    <div class="pf-title" id="pfTitle">Antes de sortear</div>
+    <div class="pf-msg" id="pfMsg"></div>
+    <div class="pf-actions">
+      <button class="pf-btn pf-primary" id="pfFix">Completar</button>
+      <button class="pf-btn" id="pfGo">Sortear igual</button>
+    </div>
+  </div>
+</div>
 
 <footer class="app-footer">Desarrollado por @sebranda</footer>
 
@@ -1869,9 +1936,108 @@
   document.addEventListener('DOMContentLoaded', updateSoundBtn);
   updateSoundBtn();
 
+  // ── LISTA DE CONTROL PREVIA ──
+  const pfIgnored = {};   // {grid:true, names:true, prizes:true} elegidos con "Sortear igual"
+
+  function pfStatus() {
+    const rows = rowMap.length;
+    const curMin = parseInt(minInput.value), curMax = parseInt(maxInput.value);
+    const curCols = parseInt(document.getElementById('colCount').value);
+    const gridOk = rows > 0 && !!document.getElementById('ri-0') &&
+                   curMin === gridMin && curMax === gridMax && curCols === gridCols;
+
+    let emptyNames = 0;
+    for (let r = 0; r < rows; r++) {
+      const inp = document.getElementById(`ri-${r}`);
+      if (!inp || !inp.value.trim()) emptyNames++;
+    }
+    const winners = Math.max(1, parseInt(document.getElementById('winnersCount').value) || 1);
+    let filled = 0;
+    for (let i = 0; i < winners; i++) {
+      const pz = prizes[i];
+      if (!pz) continue;
+      const hasAmt = pz.type === 'money' && parseFloat(pz.amount) > 0;
+      if (hasAmt || (pz.desc && pz.desc.trim())) filled++;
+    }
+    const missingPrizes = winners - filled;
+
+    const plural = (n, a, b) => n === 1 ? a : b;
+    return [
+      { key: 'grid', target: 'panelConfig', done: gridOk,
+        title: 'Planilla generada',
+        sub: gridOk ? `Del ${gridMin} al ${gridMax}, ${rows} fila${rows === 1 ? '' : 's'}`
+                    : (rows > 0 ? 'Cambiaste el rango o las columnas: tocá "Generar planilla"' : 'Tocá "Generar planilla"'),
+        warn: 'La planilla no está generada con la configuración actual.' },
+      { key: 'names', target: 'gridPanel', done: gridOk ? emptyNames === 0 : false,
+        title: 'Participantes cargados',
+        sub: !gridOk ? 'Primero generá la planilla'
+             : (emptyNames === 0 ? `${rows} de ${rows} filas con nombre`
+                                 : `Faltan ${emptyNames} nombre${emptyNames === 1 ? '' : 's'} de ${rows}`),
+        warn: gridOk ? `Faltan los nombres de ${emptyNames} participante${emptyNames === 1 ? '' : 's'}.` : 'Faltan los participantes.' },
+      { key: 'prizes', target: 'panelPrizes', done: missingPrizes === 0,
+        title: 'Premios cargados',
+        sub: missingPrizes === 0 ? `${winners} premio${winners === 1 ? '' : 's'} cargado${winners === 1 ? '' : 's'}`
+             : `Falta${missingPrizes === 1 ? '' : 'n'} ${missingPrizes} premio${missingPrizes === 1 ? '' : 's'} (${winners} ganador${winners === 1 ? '' : 'es'})`,
+        warn: `Faltan ${missingPrizes} premio${missingPrizes === 1 ? '' : 's'} (hay ${winners} ganador${winners === 1 ? '' : 'es'}).` }
+    ];
+  }
+
+  function updatePreflight() {
+    const el = document.getElementById('preflight');
+    if (!el) return;
+    const items = pfStatus();
+    items.forEach(it => { if (it.done) delete pfIgnored[it.key]; });
+    const pending = items.filter(it => !it.done && !pfIgnored[it.key]);
+    const allDone = items.every(it => it.done);
+    el.classList.toggle('ok', allDone);
+    if (allDone) {
+      el.innerHTML = '<div class="pf-head">✅ Todo listo para sortear</div>';
+      return;
+    }
+    el.innerHTML = `<div class="pf-head">${pending.length ? 'Antes de sortear' : 'Pasos omitidos'}</div>` + items.map(it => {
+      const cls = it.done ? 'done' : (pfIgnored[it.key] ? 'skip' : 'todo');
+      const ic = it.done ? '✅' : (pfIgnored[it.key] ? '➖' : '⬜');
+      return `<button type="button" class="pf-item ${cls}" onclick="pfGoto('${it.target}')">
+        <span class="pf-ic">${ic}</span>
+        <span class="pf-tx">${it.title}<span class="pf-sub">${it.sub}</span></span></button>`;
+    }).join('');
+  }
+
+  function pfGoto(id) {
+    const t = document.getElementById(id);
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // devuelve true si se puede sortear; si no, muestra el aviso
+  function preflightCheck() {
+    if (history.length > 0) return true;                       // solo antes del primer número
+    const pending = pfStatus().filter(it => !it.done && !pfIgnored[it.key]);
+    if (!pending.length) return true;
+    document.getElementById('pfMsg').innerHTML =
+      'Todavía falta:<ul>' + pending.map(it => `<li>${it.warn}</li>`).join('') + '</ul>';
+    const modal = document.getElementById('pfModal');
+    modal.classList.add('show');
+    document.getElementById('pfFix').onclick = () => {
+      modal.classList.remove('show');
+      pfGoto(pending[0].target);
+    };
+    document.getElementById('pfGo').onclick = () => {
+      modal.classList.remove('show');
+      pending.forEach(it => { pfIgnored[it.key] = true; });
+      updatePreflight();
+      spin();
+    };
+    return false;
+  }
+
+  let pfTimer = null;
+  function updatePreflightSoon() { clearTimeout(pfTimer); pfTimer = setTimeout(updatePreflight, 150); }
+  ['input', 'change', 'click'].forEach(ev => document.addEventListener(ev, updatePreflightSoon, true));
+
   // ── SPIN ──
   function spin() {
     if (isSpinning) return;
+    if (!preflightCheck()) return;
     if (!document.getElementById(`ri-0`)) { alert('Generá la planilla primero.'); return; }
 
     const maxWinners = parseInt(document.getElementById('winnersCount').value) || 1;
@@ -3013,6 +3179,7 @@
   loadRepeat();
   loadThanks();
   restoreState();
+  updatePreflight(); setTimeout(updatePreflight, 400);
   document.getElementById('participantGrid').addEventListener('input', saveStateSoon);
   loadGridZoom();
 
