@@ -635,6 +635,7 @@
   }
 
   .btn-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+  .undo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
   .empty-msg {
     color: var(--muted);
@@ -1547,6 +1548,7 @@
       <div class="history-list" id="historyList">
         <span class="empty-msg">Sin sorteos aún</span>
       </div>
+      <button class="btn-reset undo-btn" onclick="undoLast()" style="margin-right:8px;">↶ Deshacer último número</button>
       <button class="btn-reset" onclick="resetHistory()">↺ Reiniciar historial</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
     </div>
@@ -1575,6 +1577,7 @@
     <div class="hist-summary" id="histSummary"></div>
     <div id="histAlerts"></div>
     <div class="hist-controls">
+      <button class="tool-btn undo-btn" onclick="undoLast()">↶ Deshacer último</button>
       <button class="tool-btn" id="histOrderBtn" onclick="toggleHistOrder()">↕ Más recientes primero</button>
     </div>
     <div id="histTable"></div>
@@ -2059,6 +2062,7 @@
   }
 
   function renderHistory() {
+    updateUndoBtns();
     const list = document.getElementById('historyList');
     if (!history.length) { list.innerHTML = '<span class="empty-msg">Sin sorteos aún</span>'; return; }
     list.innerHTML = history.map(h =>
@@ -2066,6 +2070,53 @@
         N°${h.num}${h.name ? ' · ' + h.name : ''}${h.rowComplete ? ' 🏆' : ''}
       </div>`
     ).join('');
+  }
+
+  function updateUndoBtns() {
+    document.querySelectorAll('.undo-btn').forEach(b => { b.disabled = !history.length; });
+  }
+
+  function undoLast() {
+    if (isSpinning || !history.length) return;
+    const h = history[0];
+    if (!confirm(`¿Deshacer el último número sorteado (N°${h.num}${h.name ? ' · ' + h.name : ''})?`)) return;
+    history.shift();
+
+    // el número vuelve a estar disponible (salvo que haya salido antes)
+    const stillDrawn = history.some(x => x.num === h.num);
+    if (!stillDrawn) {
+      usedNumbers.delete(h.num);
+      const chip = document.getElementById(`nc-${h.num}`);
+      if (chip) { chip.classList.remove('drawn'); chip.removeAttribute('data-mark'); }
+    }
+
+    // si había completado una fila, deja de ser ganadora
+    if (h.rowComplete) {
+      completedRows = completedRows.filter(w => w.rowIdx !== h.rowIdx);
+      const rowEl = document.getElementById(`row-${h.rowIdx}`);
+      if (rowEl) rowEl.classList.remove('row-complete');
+      if (completedRows.length) renderPodium(); else clearPodium();
+    }
+    hideThanks();
+    hideWheelBig();
+
+    // vuelve a mostrar el sorteo anterior
+    const prev = history[0];
+    if (prev) {
+      const maxWinners = parseInt(document.getElementById('winnersCount').value) || 1;
+      document.getElementById('ballNum').textContent = prev.num;
+      setWheelCenter(prev.num);
+      renderResult(prev.num, prev.name, prev.rowComplete, prev.rowIdx, completedRows.length >= maxWinners);
+    } else {
+      document.getElementById('ballNum').textContent = '?';
+      setWheelCenter('?');
+      document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
+    }
+
+    renderHistory();
+    if (document.body.classList.contains('fs-history') && typeof renderHistoryPanel === 'function') renderHistoryPanel();
+    vibrate(30);
+    saveState();
   }
 
   function resetHistory() {
