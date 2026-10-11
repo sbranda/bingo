@@ -105,6 +105,17 @@
 
   @media (max-width: 560px) { h1 { margin-top: 46px; } }
 
+  .install-wrap { display: flex; justify-content: center; margin: 4px 0 24px; min-height: 4px; }
+  .install-btn {
+    font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 0.9rem;
+    background: var(--accent); color: #111; border: none; border-radius: 999px;
+    padding: 10px 22px; cursor: pointer; box-shadow: 0 6px 20px rgba(245,197,24,0.25);
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  }
+  .install-btn[hidden] { display: none; }
+  .install-btn:active { transform: scale(0.97); }
+  body.fs-sorteo .install-wrap, body.fs-grid .install-wrap, body.fs-history .install-wrap { display: none; }
+
   .app-footer {
     font-family: 'Outfit', sans-serif;
     font-size: 0.75rem;
@@ -1494,7 +1505,7 @@
 
 <h1>🎱 BINGO EN VIVO</h1>
 <p class="subtitle">Presioná la bola para girar</p>
-<div style="height:28px"></div>
+<div class="install-wrap"><button type="button" class="install-btn" id="installBtn" onclick="installApp()" hidden>📲 Instalar la app</button></div>
 
 <div class="layout">
 
@@ -1740,6 +1751,14 @@
   </div>
 </div>
 
+<div class="pf-modal" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+  <div class="pf-box">
+    <div class="pf-title" id="installTitle">Instalar Bingo en Vivo</div>
+    <div class="pf-msg" id="installMsg"></div>
+    <div class="pf-actions"><button class="pf-btn pf-primary" onclick="closeInstallHelp()">Entendido</button></div>
+  </div>
+</div>
+
 <footer class="app-footer">Desarrollado por @sebranda</footer>
 
 <!-- confetti container -->
@@ -1935,6 +1954,43 @@
   }
   document.addEventListener('DOMContentLoaded', updateSoundBtn);
   updateSoundBtn();
+
+  // ── INSTALAR LA APP ──
+  let deferredInstall = null;
+  const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  function showInstallBtn(show) {
+    const b = document.getElementById('installBtn');
+    if (b) b.hidden = !show;
+  }
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstall = e;
+    if (!isStandalone()) showInstallBtn(true);
+  });
+  window.addEventListener('appinstalled', () => { deferredInstall = null; showInstallBtn(false); });
+
+  async function installApp() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      try { await deferredInstall.userChoice; } catch (e) {}
+      deferredInstall = null;
+      showInstallBtn(false);
+      return;
+    }
+    // sin diálogo nativo (iPhone/iPad u otros navegadores): instrucciones
+    const msg = document.getElementById('installMsg');
+    msg.innerHTML = isIOS()
+      ? 'En iPhone o iPad:<ol style="margin:8px 0 0 1.2em;padding:0;"><li>Abrí esta página en <b>Safari</b>.</li><li>Tocá el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elegí <b>Agregar a pantalla de inicio</b>.</li><li>Tocá <b>Agregar</b>.</li></ol>'
+      : 'Abrí el menú del navegador (⋮) y elegí <b>Instalar aplicación</b> o <b>Agregar a pantalla de inicio</b>.';
+    document.getElementById('installModal').classList.add('show');
+  }
+  function closeInstallHelp() { document.getElementById('installModal').classList.remove('show'); }
+
+  // iPhone no dispara beforeinstallprompt: mostramos el botón con las instrucciones
+  if (!isStandalone() && isIOS()) showInstallBtn(true);
 
   // ── LISTA DE CONTROL PREVIA ──
   const pfIgnored = {};   // {grid:true, names:true, prizes:true} elegidos con "Sortear igual"
