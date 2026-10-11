@@ -1279,6 +1279,52 @@
   }
   body.fs-history .grid-zoom { display: flex; }
 
+  /* CARTEL FINAL EN LA PLANILLA */
+  .thanks-banner {
+    display: none;
+    position: sticky;
+    top: 10px;
+    z-index: 5;
+    margin: 0.4em 16px 2.9em;
+    padding: 0.5em 2.2em 0.55em;
+    text-align: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(1.1rem, 5.2vw, 2.2rem);
+    line-height: 1.1;
+    color: #231700;
+    text-shadow: 0 2px 0 rgba(255,255,255,0.45);
+    background: linear-gradient(135deg, #fff2a8 0%, #f5c518 38%, #e0a000 70%, #ffd94a 100%);
+    border: 3px solid #fffbe0;
+    border-radius: 14px;
+    outline: 3px dashed rgba(35,23,0,0.55);
+    outline-offset: -11px;
+    transform: rotate(-5deg);
+  }
+  .thanks-banner.show {
+    display: flex; align-items: center; justify-content: center; gap: 0.45em;
+    animation: thanksIn 0.85s cubic-bezier(0.2, 1.5, 0.4, 1) both, thanksGlow 2.2s ease-in-out 0.85s infinite;
+  }
+  .thanks-emo { font-size: 1.1em; animation: thanksBob 1.4s ease-in-out infinite; }
+  .thanks-emo:last-of-type { animation-delay: 0.35s; }
+  .thanks-x {
+    position: absolute; top: 4px; right: 8px;
+    background: rgba(35,23,0,0.18); border: none; color: #231700;
+    width: 1.5em; height: 1.5em; border-radius: 50%;
+    font-size: 0.55em; font-weight: 700; line-height: 1; cursor: pointer;
+  }
+  @keyframes thanksIn {
+    0%   { opacity: 0; transform: rotate(-28deg) scale(3.4); }
+    55%  { opacity: 1; transform: rotate(-2deg) scale(0.9); }
+    100% { opacity: 1; transform: rotate(-5deg) scale(1); }
+  }
+  @keyframes thanksGlow {
+    0%, 100% { box-shadow: 0 10px 28px rgba(0,0,0,0.65), 0 0 26px rgba(245,197,24,0.55); }
+    50%      { box-shadow: 0 12px 34px rgba(0,0,0,0.65), 0 0 60px rgba(245,197,24,0.95); }
+  }
+  @keyframes thanksBob { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-4px) rotate(8deg); } }
+  body.fs-grid #gridPanel .thanks-banner { top: 64px; font-size: calc(var(--gz, 1) * clamp(1.1rem, 5.2vw, 2.2rem)); }
+
 </style>
 </head>
 <body>
@@ -1361,6 +1407,15 @@
 
     <!-- SEPARADOR -->
     <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
+
+    <!-- FILA: mensaje final -->
+    <div>
+      <div class="section-label">Mensaje al finalizar el sorteo</div>
+      <input type="text" id="thanksInput" maxlength="70" placeholder="¡Muchas gracias por participar!" oninput="saveThanks()" autocomplete="off">
+    </div>
+
+    <!-- SEPARADOR -->
+    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
 
     <!-- FILA 3: estilo de sorteo -->
     <div>
@@ -1464,6 +1519,12 @@
 
   <!-- PLANILLA ABAJO -->
   <div class="panel" id="gridPanel">
+    <div class="thanks-banner" id="thanksBanner" role="status">
+      <button class="thanks-x" onclick="hideThanks()" aria-label="Cerrar cartel">✕</button>
+      <span class="thanks-emo">🎉</span>
+      <span class="thanks-text" id="thanksText">¡Muchas gracias por participar!</span>
+      <span class="thanks-emo">🎉</span>
+    </div>
     <div class="grid-winners" id="gridWinners">
       <div class="panel-title">🏆 Ganadores</div>
       <div class="grid-winners-list" id="gridWinnersList"></div>
@@ -1536,6 +1597,7 @@
     document.getElementById('ballNum').textContent = '?';
     wheelLabels = idleWheelLabels();
     clearPodium();
+    hideThanks();
     setWheelCenter('?');
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
 
@@ -1675,6 +1737,7 @@
     renderHistory();
 
     if (rowComplete) launchConfetti(sorteoFinalizado ? 120 : 70);
+    if (rowComplete && sorteoFinalizado) showThanks();
     saveState();
     isSpinning = false;
   }
@@ -1821,6 +1884,7 @@
     document.getElementById('ballNum').textContent = '?';
     setWheelCenter('?');
     hideWheelBig();
+    hideThanks();
     document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
     clearPodium();
     document.querySelectorAll('.num-chip.drawn').forEach(c => c.classList.remove('drawn'));
@@ -2495,6 +2559,7 @@
         const maxW = parseInt(document.getElementById('winnersCount').value) || 1;
         renderResult(l.num, l.name, l.rowComplete, l.rowIdx, completedRows.length >= maxW);
         lastDrawn = l.num;
+        if (completedRows.length >= maxW) showThanks();
       }
     } catch(e) {}
   }
@@ -2579,6 +2644,25 @@
       : '<div class="hist-ok">✓ Ya salieron todos los números.</div>';
   }
 
+  // ── CARTEL "MUCHAS GRACIAS" AL COMPLETAR EL SORTEO ──
+  const THANKS_DEFAULT = '¡Muchas gracias por participar!';
+  function thanksMsg() {
+    const v = (document.getElementById('thanksInput').value || '').trim();
+    return v || THANKS_DEFAULT;
+  }
+  function showThanks() {
+    const b = document.getElementById('thanksBanner');
+    document.getElementById('thanksText').textContent = thanksMsg();
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  }
+  function hideThanks() { document.getElementById('thanksBanner').classList.remove('show'); }
+  function saveThanks() {
+    try { localStorage.setItem('sorteo_thanks', document.getElementById('thanksInput').value); } catch(e) {}
+  }
+  function loadThanks() {
+    try { const v = localStorage.getItem('sorteo_thanks'); if (v) document.getElementById('thanksInput').value = v; } catch(e) {}
+  }
+
   loadFontSize();
   loadBallColor();
   loadMarkIcon();
@@ -2593,6 +2677,7 @@
   loadDrawStyle();
   loadAutoGo();
   loadRepeat();
+  loadThanks();
   restoreState();
   document.getElementById('participantGrid').addEventListener('input', saveStateSoon);
   loadGridZoom();
