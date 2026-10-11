@@ -116,6 +116,26 @@
   .install-btn:active { transform: scale(0.97); }
   body.fs-sorteo .install-wrap, body.fs-grid .install-wrap, body.fs-history .install-wrap { display: none; }
 
+  /* ── pasos ordenados, cada sección con borde blanco ── */
+  .step-panel { border: 0 !important; }
+  .panel.step-panel { border-radius: 18px; }
+  .stage.step-panel { border-radius: 18px; padding: 22px 16px 26px; background: var(--surface); }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    width: 1.7em; height: 1.7em; border-radius: 50%;
+    background: var(--accent); color: #111; font-family: 'Outfit', sans-serif;
+    font-weight: 800; font-size: 0.82rem; letter-spacing: 0;
+  }
+  .step-head {
+    align-self: stretch; display: flex; align-items: center; gap: 8px;
+    font-family: 'Playfair Display', serif; font-weight: 700; letter-spacing: 1px;
+    font-size: 1rem; color: var(--accent); margin: 0;
+  }
+  .step-opt { font-family: 'Outfit', sans-serif; font-weight: 400; font-size: 0.75rem; color: var(--muted); letter-spacing: 0; }
+  body.fs-sorteo .stage.step-panel { border: 0 !important; border-radius: 0; }
+  body.fs-sorteo .step-head, body.fs-grid .step-num, body.fs-history .step-num, body.fs-sorteo .step-num { display: none; }
+  body.fs-grid #gridPanel.step-panel { border: 0 !important; border-radius: 0; }
+
   /* mis bingos guardados */
   .lib-current { font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
   .lib-current b { color: #fff; }
@@ -1564,11 +1584,22 @@
 <div class="layout">
 
   <!-- LISTA DE CONTROL -->
-  <div class="preflight" id="preflight" aria-live="polite"></div>
+  <div class="preflight step-panel" id="preflight" aria-live="polite"></div>
+
+  <!-- MIS BINGOS GUARDADOS -->
+  <div class="panel step-panel" id="panelLibrary">
+    <div class="panel-title">📚 Mis bingos guardados</div>
+    <div class="lib-current" id="libCurrent"></div>
+    <div class="lib-save">
+      <input type="text" id="bingoName" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off">
+      <button class="btn-sm" onclick="libSaveCurrent()" id="libSaveBtn">💾 Guardar bingo</button>
+    </div>
+    <div class="lib-list" id="libList"></div>
+  </div>
 
   <!-- PANEL CONFIG -->
-  <div class="panel" id="panelConfig">
-    <div class="panel-title">Configuración</div>
+  <div class="panel step-panel" id="panelConfig">
+    <div class="panel-title"><span class="step-num">1</span> Configuración y planilla</div>
 
     <!-- FILA 1: inputs + botones + toggle + tamaño -->
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px;">
@@ -1616,8 +1647,34 @@
       </div>
     </div>
 
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
+  </div>
+
+  <!-- PLANILLA ABAJO -->
+  <div class="panel step-panel" id="gridPanel">
+    <div class="thanks-banner" id="thanksBanner" role="status">
+      <button class="thanks-x" onclick="hideThanks()" aria-label="Cerrar cartel">✕</button>
+      <span class="thanks-emo">🎉</span>
+      <span class="thanks-text" id="thanksText">¡Muchas gracias por participar!</span>
+      <span class="thanks-emo">🎉</span>
+    </div>
+    <div class="grid-winners" id="gridWinners">
+      <div class="panel-title">🏆 Ganadores</div>
+      <div class="grid-winners-list" id="gridWinnersList"></div>
+    </div>
+    <div class="panel-title"><span class="step-num">2</span> Planilla de participantes</div>
+    <div id="participantGrid"><span class="empty-msg">Generá la planilla para cargar participantes</span></div>
+  </div>
+
+  <!-- PREMIOS -->
+  <div class="panel step-panel" id="panelPrizes">
+    <div class="panel-title"><span class="step-num">3</span> Premios</div>
+    <div id="prizeList"></div>
+    <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
+  </div>
+
+  <!-- PASO 4: PERSONALIZAR -->
+  <div class="panel step-panel" id="panelCustom">
+    <div class="panel-title"><span class="step-num">4</span> Personalizar <small class="step-opt">(opcional)</small></div>
 
     <!-- FILA 2: ícono sorteado -->
     <div style="margin-bottom:16px;">
@@ -1686,26 +1743,10 @@
 
   </div>
 
-  <!-- PREMIOS -->
-  <div class="panel" id="panelPrizes">
-    <div class="panel-title">Premios</div>
-    <div id="prizeList"></div>
-    <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
-  </div>
-
-  <!-- MIS BINGOS GUARDADOS -->
-  <div class="panel" id="panelLibrary">
-    <div class="panel-title">📚 Mis bingos guardados</div>
-    <div class="lib-current" id="libCurrent"></div>
-    <div class="lib-save">
-      <input type="text" id="bingoName" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off">
-      <button class="btn-sm" onclick="libSaveCurrent()" id="libSaveBtn">💾 Guardar bingo</button>
-    </div>
-    <div class="lib-list" id="libList"></div>
-  </div>
-
   <!-- STAGE: bola + resultados -->
-  <div class="stage">
+  <div class="stage step-panel">
+
+    <h2 class="step-head"><span class="step-num">5</span> Sorteo</h2>
 
     <div class="stage-tools">
       <button class="tool-btn" onclick="openFS('sorteo')">⛶ Pantalla completa</button>
@@ -1758,6 +1799,12 @@
       <div id="podiumList" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
 
+
+  </div>
+
+  <!-- PASO 6: RESULTADOS -->
+  <div class="panel step-panel" id="panelResults">
+    <div class="panel-title"><span class="step-num">6</span> Resultados</div>
     <!-- HISTORIAL -->
     <div class="history-section">
       <div class="history-title">Historial</div>
@@ -1769,23 +1816,6 @@
       <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
     </div>
-
-  </div>
-
-  <!-- PLANILLA ABAJO -->
-  <div class="panel" id="gridPanel">
-    <div class="thanks-banner" id="thanksBanner" role="status">
-      <button class="thanks-x" onclick="hideThanks()" aria-label="Cerrar cartel">✕</button>
-      <span class="thanks-emo">🎉</span>
-      <span class="thanks-text" id="thanksText">¡Muchas gracias por participar!</span>
-      <span class="thanks-emo">🎉</span>
-    </div>
-    <div class="grid-winners" id="gridWinners">
-      <div class="panel-title">🏆 Ganadores</div>
-      <div class="grid-winners-list" id="gridWinnersList"></div>
-    </div>
-    <div class="panel-title">Planilla de participantes</div>
-    <div id="participantGrid"><span class="empty-msg">Generá la planilla para cargar participantes</span></div>
   </div>
 
   <!-- HISTORIAL COMPLETO (se muestra solo en su vista) -->
