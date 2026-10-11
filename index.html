@@ -116,6 +116,44 @@
   .install-btn:active { transform: scale(0.97); }
   body.fs-sorteo .install-wrap, body.fs-grid .install-wrap, body.fs-history .install-wrap { display: none; }
 
+  /* mis bingos guardados */
+  .lib-current { font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+  .lib-current b { color: #fff; }
+  .lib-save { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .lib-save input { flex: 1 1 180px; min-width: 0; }
+  .lib-list { display: flex; flex-direction: column; gap: 8px; }
+  .lib-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-family: 'Outfit', sans-serif;
+  }
+  .lib-item.cur { border-color: var(--accent); }
+  .lib-info { flex: 1; min-width: 0; }
+  .lib-info b { display: block; color: #fff; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-info span { display: block; color: var(--muted); font-size: 0.74rem; margin-top: 2px; }
+  .lib-item button {
+    font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lib-item button.del { color: #ff8a8a; border-color: rgba(255,138,138,0.5); padding: 7px 10px; }
+
+  .pf-btn.pf-danger { background: #c92a2a; border-color: #c92a2a; color: #fff; }
+  .cf-list { margin: 8px 0 0 1.1em; padding: 0; }
+  .cf-keep { margin-top: 10px; color: var(--muted); font-size: 0.82rem; }
+  .share-opt { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 0.95rem; text-transform: none; letter-spacing: 0; color: #fff; font-weight: 500; }
+  .share-opt input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .share-status { min-height: 1.3em; font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--accent); margin-bottom: 10px; }
+
+  #printArea { display: none; }
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; }
+    #printArea img { width: 100%; display: block; page-break-after: always; break-after: page; }
+    @page { margin: 0; }
+  }
+
   .app-footer {
     font-family: 'Outfit', sans-serif;
     font-size: 0.75rem;
@@ -1655,6 +1693,17 @@
     <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
   </div>
 
+  <!-- MIS BINGOS GUARDADOS -->
+  <div class="panel" id="panelLibrary">
+    <div class="panel-title">📚 Mis bingos guardados</div>
+    <div class="lib-current" id="libCurrent"></div>
+    <div class="lib-save">
+      <input type="text" id="bingoName" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off">
+      <button class="btn-sm" onclick="libSaveCurrent()" id="libSaveBtn">💾 Guardar bingo</button>
+    </div>
+    <div class="lib-list" id="libList"></div>
+  </div>
+
   <!-- STAGE: bola + resultados -->
   <div class="stage">
 
@@ -1716,7 +1765,8 @@
         <span class="empty-msg">Sin sorteos aún</span>
       </div>
       <button class="btn-reset undo-btn" onclick="undoLast()" style="margin-right:8px;">↶ Deshacer último número</button>
-      <button class="btn-reset" onclick="resetHistory()">↺ Reiniciar historial</button>
+      <button class="btn-reset" onclick="requestReset()">↺ Reiniciar historial</button>
+      <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
     </div>
 
@@ -1745,6 +1795,7 @@
     <div id="histAlerts"></div>
     <div class="hist-controls">
       <button class="tool-btn undo-btn" onclick="undoLast()">↶ Deshacer último</button>
+      <button class="tool-btn" onclick="openShare()">📤 Compartir / imprimir</button>
       <button class="tool-btn" id="histOrderBtn" onclick="toggleHistOrder()">↕ Más recientes primero</button>
     </div>
     <div id="histTable"></div>
@@ -1783,6 +1834,34 @@
     <div class="pf-actions"><button class="pf-btn pf-primary" onclick="closeInstallHelp()">Entendido</button></div>
   </div>
 </div>
+
+<div class="pf-modal" id="cfModal" role="dialog" aria-modal="true" aria-labelledby="cfTitle">
+  <div class="pf-box">
+    <div class="pf-title" id="cfTitle"></div>
+    <div class="pf-msg" id="cfMsg"></div>
+    <div class="pf-actions" id="cfActions"></div>
+  </div>
+</div>
+
+<div class="pf-modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+  <div class="pf-box">
+    <div class="pf-title" id="shareTitle">Compartir o imprimir resultados</div>
+    <div class="pf-msg">
+      <label class="share-opt"><input type="checkbox" id="shWins" checked> Ganadores y premios</label>
+      <label class="share-opt"><input type="checkbox" id="shHist" checked> Historial (orden de salida)</label>
+    </div>
+    <div class="share-grid">
+      <button class="pf-btn" onclick="rptAction('pdf')">📄 Descargar PDF</button>
+      <button class="pf-btn" onclick="rptAction('img')">🖼 Descargar imagen</button>
+      <button class="pf-btn" onclick="rptAction('share')">📤 Compartir</button>
+      <button class="pf-btn" onclick="rptAction('print')">🖨 Imprimir</button>
+    </div>
+    <div class="share-status" id="shareStatus"></div>
+    <div class="pf-actions"><button class="pf-btn" onclick="closeShare()">Cerrar</button></div>
+  </div>
+</div>
+
+<div id="printArea" aria-hidden="true"></div>
 
 <footer class="app-footer">Desarrollado por @sebranda</footer>
 
@@ -2210,7 +2289,7 @@
       do { num = Math.floor(Math.random() * total) + gridMin; }
       while (!allowRepeat && usedNumbers.has(num) && usedNumbers.size < total);
     }
-    if (!allowRepeat) usedNumbers.add(num);
+    usedNumbers.add(num);   // "ya salió": también con repeticiones, para detectar filas completas
 
     const ball    = document.getElementById('ball');
     const ballNum = document.getElementById('ballNum');
@@ -3295,6 +3374,387 @@
       .then(reg => reg.update())
       .catch(() => {});
   }
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  MEJORAS: bingos guardados · compartir/imprimir · confirmar reinicio
+// ════════════════════════════════════════════════════════════════
+
+// ── Cuadro de confirmación genérico ──
+function cfAsk({ title, html, buttons }) {
+  return new Promise(resolve => {
+    const m = document.getElementById('cfModal');
+    document.getElementById('cfTitle').textContent = title;
+    document.getElementById('cfMsg').innerHTML = html;
+    const box = document.getElementById('cfActions');
+    box.innerHTML = '';
+    const done = v => { m.classList.remove('show'); document.removeEventListener('keydown', onKey); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') done('cancel'); };
+    buttons.forEach(b => {
+      const el = document.createElement('button');
+      el.className = 'pf-btn' + (b.primary ? ' pf-primary' : '') + (b.danger ? ' pf-danger' : '');
+      el.textContent = b.label;
+      el.onclick = () => done(b.id);
+      box.appendChild(el);
+    });
+    document.addEventListener('keydown', onKey);
+    m.classList.add('show');
+  });
+}
+
+const fmtDateTime = d => new Date(d).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+// ── MIS BINGOS GUARDADOS ──
+const LIB_KEY = 'sorteo_library', CUR_KEY = 'sorteo_current_name';
+function libLoad() { try { const a = JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function libStore(a) {
+  try { localStorage.setItem(LIB_KEY, JSON.stringify(a)); return true; }
+  catch (e) { alert('No se pudo guardar. Tu navegador puede tener el almacenamiento bloqueado o lleno.'); return false; }
+}
+function getCurrentName() { try { return localStorage.getItem(CUR_KEY) || ''; } catch (e) { return ''; } }
+function setCurrentName(n) { try { localStorage.setItem(CUR_KEY, n || ''); } catch (e) {} const i = document.getElementById('bingoName'); if (i) i.value = n || ''; renderLibrary(); }
+
+function collectNames() {
+  const names = {};
+  for (let r = 0; r < rowMap.length; r++) { const i = document.getElementById(`ri-${r}`); if (i) names[r] = i.value; }
+  return names;
+}
+function collectConfig() {
+  return {
+    minVal: document.getElementById('minVal').value,
+    maxVal: document.getElementById('maxVal').value,
+    colCount: document.getElementById('colCount').value,
+    winnersCount: document.getElementById('winnersCount').value,
+    allowRepeat: document.getElementById('allowRepeat').checked,
+    prizes: JSON.parse(JSON.stringify(prizes)),
+    participantNames: collectNames(),
+    gridBuilt: rowMap.length > 0,
+    fontPct, markIcon
+  };
+}
+function collectState() {
+  return { sig: gridSig(), history: JSON.parse(JSON.stringify(history)), used: [...usedNumbers], completed: JSON.parse(JSON.stringify(completedRows)), names: collectNames() };
+}
+
+function renderLibrary() {
+  const list = document.getElementById('libList'); if (!list) return;
+  const cur = getCurrentName();
+  document.getElementById('libCurrent').innerHTML = cur ? `Bingo actual: <b>${esc(cur)}</b>` : 'Todavía no le pusiste nombre a este bingo.';
+  const lib = libLoad().sort((a, b) => b.savedAt - a.savedAt);
+  if (!lib.length) { list.innerHTML = '<span class="empty-msg">Todavía no guardaste ningún bingo</span>'; return; }
+  list.innerHTML = lib.map(it => {
+    const rows = it.data && it.data.gridBuilt ? Math.ceil((parseInt(it.data.maxVal) - parseInt(it.data.minVal) + 1) / (parseInt(it.data.colCount) || 1)) : 0;
+    const drawn = it.state && it.state.history ? it.state.history.length : 0;
+    return `<div class="lib-item${it.name === cur ? ' cur' : ''}">
+      <div class="lib-info"><b>${esc(it.name)}</b><span>${esc(fmtDateTime(it.savedAt))} · ${rows} fila${rows === 1 ? '' : 's'} · ${drawn} sorteado${drawn === 1 ? '' : 's'}</span></div>
+      <button onclick="libOpen('${it.id}')">Abrir</button>
+      <button class="del" onclick="libDelete('${it.id}')" aria-label="Eliminar">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function libSaveCurrent() {
+  const inp = document.getElementById('bingoName');
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); inp.placeholder = 'Escribí un nombre para guardarlo'; return; }
+  const lib = libLoad();
+  const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
+  if (same) {
+    const r = await cfAsk({ title: 'Ya existe ese nombre', html: `Ya tenés un bingo guardado como <b>${esc(same.name)}</b>. ¿Querés reemplazarlo con lo que tenés ahora?`,
+      buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'ok', label: 'Reemplazar', primary: true }] });
+    if (r !== 'ok') return;
+  }
+  const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  const out = same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item);
+  if (!libStore(out)) return;
+  setCurrentName(name);
+  const b = document.getElementById('libSaveBtn'); const o = b.textContent; b.textContent = '✓ Guardado';
+  setTimeout(() => { b.textContent = o; }, 1800);
+}
+
+async function libOpen(id) {
+  const it = libLoad().find(x => x.id === id); if (!it) return;
+  const typed = Object.values(collectNames()).some(v => v && v.trim());
+  if (history.length > 0 || typed) {
+    const r = await cfAsk({ title: `Abrir "${it.name}"`, html: 'Esto reemplaza el bingo que tenés en pantalla. Si no lo guardaste, se pierde.',
+      buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'ok', label: 'Abrir', primary: true }] });
+    if (r !== 'ok') return;
+  }
+  applyBingo(it);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function applyBingo(it) {
+  const d = it.data || {};
+  if (d.minVal)       document.getElementById('minVal').value = d.minVal;
+  if (d.maxVal)       document.getElementById('maxVal').value = d.maxVal;
+  if (d.colCount)     document.getElementById('colCount').value = d.colCount;
+  if (d.winnersCount) document.getElementById('winnersCount').value = d.winnersCount;
+  const rep = document.getElementById('allowRepeat'); rep.checked = !!d.allowRepeat; rep.dispatchEvent(new Event('change', { bubbles: true }));
+  prizes = JSON.parse(JSON.stringify(d.prizes || [])); renderPrizes();
+  buildGrid();
+  Object.entries(d.participantNames || {}).forEach(([r, v]) => { const i = document.getElementById(`ri-${r}`); if (i) i.value = v; });
+  hideThanks(); hideWheelBig();
+  document.getElementById('ballNum').textContent = '?'; setWheelCenter('?');
+  document.getElementById('winnerCard').innerHTML = '<span class="no-winner">El ganador aparecerá aquí</span>';
+  try {
+    localStorage.setItem('sorteo_data', JSON.stringify(Object.assign({}, d, { participantNames: collectNames() })));
+    if (it.state && it.state.sig === gridSig()) { localStorage.setItem('sorteo_state', JSON.stringify(it.state)); restoreState(); }
+  } catch (e) {}
+  saveState();
+  setCurrentName(it.name);
+  updatePreflight();
+}
+
+async function libDelete(id) {
+  const it = libLoad().find(x => x.id === id); if (!it) return;
+  const r = await cfAsk({ title: 'Eliminar bingo guardado', html: `¿Eliminar <b>${esc(it.name)}</b> de tus bingos guardados? Esto no se puede deshacer.`,
+    buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'ok', label: 'Eliminar', danger: true }] });
+  if (r !== 'ok') return;
+  libStore(libLoad().filter(x => x.id !== id));
+  if (getCurrentName() === it.name) { /* el bingo en pantalla sigue; solo deja de estar guardado */ }
+  renderLibrary();
+}
+
+// ── REINICIAR CON RESUMEN ──
+async function requestReset() {
+  if (isSpinning) return;
+  if (!history.length && !completedRows.length) {
+    await cfAsk({ title: 'Nada para reiniciar', html: 'Todavía no se sorteó ningún número.', buttons: [{ id: 'ok', label: 'Entendido', primary: true }] });
+    return;
+  }
+  const nums = history.slice().reverse().map(h => h.num);
+  const numTxt = nums.length > 30 ? nums.slice(0, 30).join(', ') + ` … (+${nums.length - 30} más)` : nums.join(', ');
+  const medals = ['🥇', '🥈', '🥉'];
+  const wins = completedRows.map((w, i) => {
+    const inp = document.getElementById(`ri-${w.rowIdx}`);
+    const nm = (inp && inp.value.trim()) || w.name;
+    const pz = prizes[i] ? formatPrize(prizes[i]) : '';
+    return `<li>${medals[i] || (i + 1) + '°'} ${esc(nm)}${pz ? ' — ' + esc(pz) : ''}</li>`;
+  }).join('');
+  const html = `Se van a borrar:
+    <ul class="cf-list">
+      <li><b>${nums.length}</b> número${nums.length === 1 ? '' : 's'} sorteado${nums.length === 1 ? '' : 's'}: ${esc(numTxt)}</li>
+      <li><b>${completedRows.length}</b> ganador${completedRows.length === 1 ? '' : 'es'}${wins ? `<ul class="cf-list" style="list-style:none;margin-left:0">${wins}</ul>` : ''}</li>
+      <li>Las marcas de la planilla y el historial</li>
+    </ul>
+    <div class="cf-keep">Se conservan: la planilla, los participantes y los premios.</div>`;
+  const r = await cfAsk({ title: '¿Reiniciar el historial?', html,
+    buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'pdf', label: '📄 Guardar PDF y reiniciar' }, { id: 'ok', label: 'Sí, reiniciar', danger: true }] });
+  if (r === 'cancel') return;
+  if (r === 'pdf') { try { await rptAction('pdf', true); } catch (e) {} }
+  resetHistory();
+}
+
+// ── INFORME: PDF / IMAGEN / COMPARTIR / IMPRIMIR ──
+const RPT_W = 1240, RPT_H = 1754;   // A4 a 150 dpi
+const F_SERIF = "'Playfair Display','DejaVu Serif',Georgia,serif";
+const F_SANS  = "'Outfit','Segoe UI','DejaVu Sans',Arial,sans-serif";
+
+function reportData(opts) {
+  const chrono = history.slice().reverse();
+  const distinct = new Set(chrono.map(h => h.num)).size;
+  const wins = completedRows.map((w, i) => {
+    const inp = document.getElementById(`ri-${w.rowIdx}`);
+    return { pos: i + 1, name: (inp && inp.value.trim()) || w.name, prize: prizes[i] ? formatPrize(prizes[i]) : '', nums: w.nums };
+  });
+  const rows = chrono.map((h, i) => ({ i: i + 1, num: h.num, name: currentName(h), row: h.rowIdx >= 0 ? h.rowIdx + 1 : null, win: !!h.rowComplete }));
+  return { name: getCurrentName(), wins, rows, distinct, total: gridMax - gridMin + 1, min: gridMin, max: gridMax, opts };
+}
+
+function fitText(ctx, t, maxW) {
+  if (ctx.measureText(t).width <= maxW) return t;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function reportBlocks(d) {
+  const M = 80, W = RPT_W, B = [];
+  const dateTxt = new Date().toLocaleString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  B.push({ kind: 'head', h: 250, draw(c, y) {
+    c.fillStyle = '#0d1230'; c.fillRect(0, y, W, 230);
+    c.fillStyle = '#f5c518'; c.fillRect(0, y + 230, W, 8);
+    c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.fillStyle = '#f5c518'; c.font = `900 84px ${F_SERIF}`; c.fillText('BINGO EN VIVO', W / 2, y + 108);
+    c.fillStyle = '#ffffff'; c.font = `700 40px ${F_SANS}`; c.fillText(fitText(c, d.name || 'Resultados del sorteo', W - 2 * M), W / 2, y + 168);
+    c.fillStyle = '#b8c0e0'; c.font = `400 26px ${F_SANS}`; c.fillText(dateTxt, W / 2, y + 208);
+  } });
+  B.push({ kind: 'gap', h: 36, draw() {} });
+  B.push({ kind: 'stats', h: 120, draw(c, y) {
+    const items = [['Números sorteados', String(d.rows.length)], ['Rango de números', `${d.min} al ${d.max}`], ['Ganadores', String(d.wins.length)]];
+    const bw = (W - 2 * M - 2 * 24) / 3;
+    items.forEach(([l, v], i) => {
+      const x = M + i * (bw + 24);
+      c.fillStyle = '#f4f5fa'; rrect(c, x, y, bw, 108, 18); c.fill();
+      c.textAlign = 'center'; c.fillStyle = '#6b7090'; c.font = `500 22px ${F_SANS}`; c.fillText(l, x + bw / 2, y + 38);
+      c.fillStyle = '#10142e'; c.font = `800 44px ${F_SERIF}`; c.fillText(v, x + bw / 2, y + 88);
+    });
+  } });
+  B.push({ kind: 'gap', h: 30, draw() {} });
+
+  const title = txt => ({ kind: 'title', glue: true, h: 84, draw(c, y) {
+    c.textAlign = 'left'; c.fillStyle = '#10142e'; c.font = `800 44px ${F_SERIF}`; c.fillText(txt, M, y + 46);
+    c.fillStyle = '#f5c518'; c.fillRect(M, y + 62, 120, 6);
+  } });
+
+  if (d.opts.wins) {
+    B.push(title('Ganadores'));
+    if (!d.wins.length) {
+      B.push({ kind: 'note', h: 70, draw(c, y) { c.textAlign = 'left'; c.fillStyle = '#6b7090'; c.font = `400 28px ${F_SANS}`; c.fillText('Todavía no hay ganadores.', M, y + 40); } });
+    }
+    const medal = ['#e3b100', '#a8aab3', '#b87333'];
+    d.wins.forEach(w => B.push({ kind: 'win', h: 128, draw(c, y) {
+      c.fillStyle = '#fafbff'; rrect(c, M, y, W - 2 * M, 112, 18); c.fill();
+      c.strokeStyle = '#e1e4f0'; c.lineWidth = 2; rrect(c, M, y, W - 2 * M, 112, 18); c.stroke();
+      c.fillStyle = medal[w.pos - 1] || '#3b4170'; c.beginPath(); c.arc(M + 58, y + 56, 34, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = `800 34px ${F_SERIF}`; c.fillText(String(w.pos), M + 58, y + 68);
+      c.textAlign = 'left'; c.fillStyle = '#10142e'; c.font = `800 38px ${F_SANS}`; c.fillText(fitText(c, w.name, 640), M + 120, y + 52);
+      c.fillStyle = '#6b7090'; c.font = `400 24px ${F_SANS}`; c.fillText(fitText(c, 'Números: ' + w.nums.join(', '), 700), M + 120, y + 88);
+      if (w.prize) { c.textAlign = 'right'; c.fillStyle = '#9a6b00'; c.font = `800 34px ${F_SANS}`; c.fillText(fitText(c, w.prize, 340), W - M - 28, y + 66); }
+    } }));
+    B.push({ kind: 'gap', h: 24, draw() {} });
+  }
+
+  if (d.opts.hist) {
+    B.push(title('Historial (orden de salida)'));
+    const head = { kind: 'thead', h: 60, draw(c, y) {
+      c.fillStyle = '#10142e'; rrect(c, M, y, W - 2 * M, 52, 10); c.fill();
+      c.fillStyle = '#fff'; c.font = `700 24px ${F_SANS}`; c.textAlign = 'left';
+      c.fillText('#', M + 24, y + 34); c.fillText('N°', M + 110, y + 34); c.fillText('Participante', M + 230, y + 34); c.fillText('Fila', M + 800, y + 34);
+    } };
+    if (!d.rows.length) {
+      B.push({ kind: 'note', h: 70, draw(c, y) { c.textAlign = 'left'; c.fillStyle = '#6b7090'; c.font = `400 28px ${F_SANS}`; c.fillText('Todavía no se sortearon números.', M, y + 40); } });
+    } else {
+      B.push(head);
+      d.rows.forEach((r, idx) => B.push({ kind: 'row', head, h: 46, draw(c, y) {
+        if (idx % 2 === 0) { c.fillStyle = '#f4f5fa'; c.fillRect(M, y, W - 2 * M, 46); }
+        c.textAlign = 'left'; c.fillStyle = '#6b7090'; c.font = `500 24px ${F_SANS}`; c.fillText(String(r.i), M + 24, y + 31);
+        c.fillStyle = '#10142e'; c.font = `800 28px ${F_SERIF}`; c.fillText(String(r.num), M + 110, y + 32);
+        c.font = `${r.win ? 700 : 500} 24px ${F_SANS}`; c.fillStyle = r.name ? '#10142e' : '#c0392b';
+        c.fillText(fitText(c, r.name || 'sin nombre', 540), M + 230, y + 31);
+        c.fillStyle = r.win ? '#9a6b00' : '#6b7090'; c.font = `${r.win ? 800 : 400} 24px ${F_SANS}`;
+        c.fillText(r.row ? 'Fila ' + r.row + (r.win ? ' · completa' : '') : '—', M + 800, y + 31);
+      } }));
+    }
+  }
+  return B;
+}
+
+function renderReportPages(opts, paged) {
+  const d = reportData(opts), blocks = reportBlocks(d);
+  const FOOT = 84, TOP = 50;
+  const limit = paged ? RPT_H - FOOT : Infinity;
+  const pages = [{ y: 0, items: [] }];
+  const cur = () => pages[pages.length - 1];
+  const place = (b, y) => { cur().items.push({ b, y }); cur().y = y + b.h; };
+  blocks.forEach((b, i) => {
+    let need = b.h;
+    if (b.glue && blocks[i + 1]) need += blocks[i + 1].h + (blocks[i + 2] ? blocks[i + 2].h : 0);
+    if (cur().y + need > limit && cur().items.length) {
+      pages.push({ y: TOP, items: [] });
+      if (b.kind === 'row') place(b.head, cur().y);
+    }
+    if (b.kind === 'gap' && cur().y === TOP && pages.length > 1) return;
+    place(b, cur().y);
+  });
+  const total = pages.length;
+  return pages.map((pg, n) => {
+    const H = paged ? RPT_H : Math.ceil(pg.y + FOOT);
+    const cv = document.createElement('canvas'); cv.width = RPT_W; cv.height = H;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, RPT_W, H);
+    pg.items.forEach(({ b, y }) => b.draw(c, y));
+    c.textAlign = 'center'; c.fillStyle = '#8a8fb0'; c.font = `400 22px ${F_SANS}`;
+    c.fillText(`Desarrollado por @sebranda · Bingo en Vivo${paged ? `  ·  Página ${n + 1} de ${total}` : ''}`, RPT_W / 2, H - 34);
+    return cv;
+  });
+}
+
+function canvasToBlob(cv, type, q) { return new Promise(res => cv.toBlob(res, type, q)); }
+
+async function buildPDF(canvases) {
+  const enc = new TextEncoder(), chunks = [], offs = [];
+  let len = 0;
+  const push = d => { const u = typeof d === 'string' ? enc.encode(d) : d; chunks.push(u); len += u.length; };
+  const PW = 595.28, PH = 841.89, n = canvases.length;
+  push('%PDF-1.4\n');
+  const obj = (num, body) => { offs[num] = len; push(`${num} 0 obj\n`); push(body); push('\nendobj\n'); };
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, `<< /Type /Pages /Kids [${canvases.map((_, i) => `${3 + 3 * i} 0 R`).join(' ')}] /Count ${n} >>`);
+  for (let i = 0; i < n; i++) {
+    const pg = 3 + 3 * i, ct = pg + 1, im = pg + 2;
+    const jpg = new Uint8Array(await (await canvasToBlob(canvases[i], 'image/jpeg', 0.92)).arrayBuffer());
+    obj(pg, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>`);
+    const cs = `q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q`;
+    obj(ct, `<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`);
+    offs[im] = len;
+    push(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvases[i].width} /Height ${canvases[i].height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`);
+    push(jpg); push('\nendstream\nendobj\n');
+  }
+  const total = 3 + 3 * n, xref = len;
+  let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for (let i = 1; i < total; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  push(x + `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(chunks, { type: 'application/pdf' });
+}
+
+function reportFileName(ext) {
+  const slug = (getCurrentName() || 'resultados').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resultados';
+  return `bingo-${slug}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function openShare() {
+  document.getElementById('shareStatus').textContent = '';
+  document.getElementById('shareModal').classList.add('show');
+}
+function closeShare() { document.getElementById('shareModal').classList.remove('show'); }
+
+async function rptAction(kind, silent) {
+  const opts = { wins: silent ? true : document.getElementById('shWins').checked, hist: silent ? true : document.getElementById('shHist').checked };
+  const st = document.getElementById('shareStatus');
+  if (!opts.wins && !opts.hist) { st.textContent = 'Elegí al menos una sección.'; return; }
+  st.textContent = 'Preparando…';
+  try {
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+    if (kind === 'pdf' || kind === 'share') {
+      const blob = await buildPDF(renderReportPages(opts, true));
+      const name = reportFileName('pdf');
+      if (kind === 'share' && navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: 'application/pdf' })] })) {
+        try { await navigator.share({ files: [new File([blob], name, { type: 'application/pdf' })], title: 'Resultados del bingo' }); st.textContent = '✓ Compartido'; return; }
+        catch (e) { if (e && e.name === 'AbortError') { st.textContent = ''; return; } }
+      }
+      downloadBlob(blob, name);
+      st.textContent = kind === 'share' ? 'Este dispositivo no permite compartir archivos: se descargó el PDF.' : '✓ PDF descargado';
+    } else if (kind === 'img') {
+      const [cv] = renderReportPages(opts, false);
+      downloadBlob(await canvasToBlob(cv, 'image/png'), reportFileName('png'));
+      st.textContent = '✓ Imagen descargada';
+    } else if (kind === 'print') {
+      const pages = renderReportPages(opts, true);
+      const area = document.getElementById('printArea'); area.innerHTML = '';
+      pages.forEach(cv => { const im = new Image(); im.src = cv.toDataURL('image/jpeg', 0.92); area.appendChild(im); });
+      const clean = () => { area.innerHTML = ''; window.removeEventListener('afterprint', clean); };
+      window.addEventListener('afterprint', clean);
+      setTimeout(() => window.print(), 250);
+      st.textContent = '';
+    }
+  } catch (e) {
+    st.textContent = 'No se pudo generar el archivo.';
+  }
+}
+
+// ── arranque ──
+(function () {
+  const cur = getCurrentName();
+  const i = document.getElementById('bingoName'); if (i && cur) i.value = cur;
+  renderLibrary();
+})();
 </script>
 </body>
 </html>
