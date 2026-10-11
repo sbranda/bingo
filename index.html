@@ -1079,6 +1079,29 @@
   }
   .fs-close:active { transform: scale(0.95); }
 
+  /* botón de sonido */
+  .snd-btn {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    z-index: 1001;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(18,18,30,0.92);
+    border: 1px solid var(--border);
+    color: var(--text, #fff);
+    border-radius: 50%;
+    font-size: 1.2rem; line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    outline: none;
+    padding: 0;
+  }
+  .snd-btn:active { transform: scale(0.93); }
+  .snd-btn.muted { border-color: var(--muted); opacity: 0.8; }
+
   /* PANTALLA COMPLETA: bola / rueda + número + participante */
   body.fs-sorteo, body.fs-grid { overflow: hidden; }
 
@@ -1561,6 +1584,7 @@
 
 </div>
 
+<button class="snd-btn" id="sndBtn" onclick="toggleSound()" aria-label="Sonido" title="Sonido activado">🔊</button>
 <button class="fs-close" id="fsClose" onclick="closeFS()">✕ Cerrar</button>
 <div class="grid-zoom" id="gridZoom">
   <button onclick="gridZoom(-1)" aria-label="Achicar">A−</button>
@@ -1658,6 +1682,113 @@
     document.getElementById('participantGrid').innerHTML = html;
   }
 
+  // ── SONIDO Y VIBRACIÓN ──
+  const Sound = (() => {
+    let ctx = null, master = null, noiseBuf = null;
+    let on = true;
+    try { on = localStorage.getItem('sorteo_sound') !== 'off'; } catch (e) {}
+
+    function init() {
+      if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = 0.9;
+        master.connect(ctx.destination);
+        const len = Math.floor(ctx.sampleRate * 0.06);
+        noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      } catch (e) { ctx = null; }
+      return ctx;
+    }
+
+    function tick(t, vol) {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 1900 + Math.random() * 500; bp.Q.value = 0.9;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      src.connect(bp); bp.connect(g); g.connect(master);
+      src.start(t); src.stop(t + 0.06);
+    }
+
+    function tone(freq, t, dur, vol, type) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+
+    return {
+      get on() { return on; },
+      set(v) { on = !!v; try { localStorage.setItem('sorteo_sound', on ? 'on' : 'off'); } catch (e) {} if (on) init(); },
+      unlock() { if (on) init(); },
+      // redoble: golpes que arrancan rápidos y se van espaciando mientras gira
+      roll(durMs, startInt, endInt) {
+        if (!on || !init()) return;
+        const t0 = ctx.currentTime + 0.02, dur = durMs / 1000;
+        let t = 0;
+        while (t < dur) {
+          const p = t / dur;
+          const e = 1 - Math.pow(1 - p, 2);
+          const gap = (startInt + (endInt - startInt) * e) / 1000;
+          tick(t0 + t, 0.16 + 0.22 * Math.sin(Math.PI * Math.min(1, p * 0.9 + 0.1)));
+          t += gap;
+        }
+      },
+      ding() {
+        if (!on || !init()) return;
+        const t = ctx.currentTime + 0.01;
+        tone(1318.5, t, 1.4, 0.34);          // Mi6
+        tone(2637,   t, 0.8, 0.12);
+        tone(1976,   t, 1.0, 0.10);
+      },
+      // fila completa / sorteo terminado
+      win(big) {
+        if (!on || !init()) return;
+        const t = ctx.currentTime + 0.35;
+        const notes = big ? [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5]
+                          : [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((f, i) => {
+          const tt = t + i * (big ? 0.13 : 0.11);
+          const last = i === notes.length - 1;
+          tone(f, tt, last ? 1.2 : 0.28, 0.26, 'triangle');
+          tone(f * 2, tt, last ? 0.9 : 0.2, 0.07, 'sine');
+        });
+        if (big) for (let i = 0; i < 14; i++) tick(t + 0.9 + i * 0.05, 0.25 - i * 0.012);
+      }
+    };
+  })();
+
+  function vibrate(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  function updateSoundBtn() {
+    const b = document.getElementById('sndBtn');
+    if (!b) return;
+    b.textContent = Sound.on ? '🔊' : '🔇';
+    b.classList.toggle('muted', !Sound.on);
+    b.title = Sound.on ? 'Sonido activado' : 'Sonido silenciado';
+    b.setAttribute('aria-pressed', String(!Sound.on));
+  }
+
+  function toggleSound() {
+    Sound.set(!Sound.on);
+    updateSoundBtn();
+    if (Sound.on) Sound.ding();
+  }
+  document.addEventListener('DOMContentLoaded', updateSoundBtn);
+  updateSoundBtn();
+
   // ── SPIN ──
   function spin() {
     if (isSpinning) return;
@@ -1678,6 +1809,7 @@
 
     isSpinning = true;
     clearTimeout(goTimer);
+    Sound.unlock();
 
     if (drawStyle === 'wheel') { spinWheel(allowRepeat, total); return; }
 
@@ -1692,6 +1824,7 @@
     do { target = Math.floor(Math.random() * total) + gridMin; }
     while (!allowRepeat && usedNumbers.has(target) && usedNumbers.size < total);
 
+    Sound.roll(2600, 40, 95);
     const shadow  = ball.querySelector('.ball-shadow');
     const SHAKE   = 2600;   // sacudida + ruleta
     const SETTLE  = 650;    // rebote final amortiguado
@@ -1791,6 +1924,9 @@
     renderResult(num, name || null, rowComplete, rowIdx, sorteoFinalizado);
     renderHistory();
 
+    Sound.ding();
+    if (rowComplete) { Sound.win(sorteoFinalizado); vibrate(sorteoFinalizado ? [150, 70, 150, 70, 150, 70, 400] : [120, 60, 120, 60, 260]); }
+    else vibrate(45);
     if (rowComplete) launchConfetti(sorteoFinalizado ? 120 : 70);
     if (rowComplete && sorteoFinalizado) showThanks();
     saveState();
@@ -2324,6 +2460,7 @@
     let final = Math.floor(start / TAU) * TAU + targetNorm + TAU * (5 + Math.floor(Math.random() * 3));
     while (final < start + TAU * 4) final += TAU;
 
+    Sound.roll(4200, 34, 190);
     const dur = 4200, t0 = performance.now();
     function frame(now) {
       const t = Math.min(1, (now - t0) / dur);
