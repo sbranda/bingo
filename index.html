@@ -1923,7 +1923,7 @@
     if (isNaN(cols) || cols < 1 || cols > 6) { alert('Columnas: entre 1 y 6.'); return; }
 
     gridMin = mn; gridMax = mx; gridCols = cols;
-    if (fromUser === true) clearState();
+    if (fromUser === true) { clearState(); prizes = []; renderPrizes(); try { saveAll(); } catch (e) {} }
     displayMin.textContent = mn;
     displayMax.textContent = mx;
     usedNumbers.clear();
@@ -2578,8 +2578,10 @@
     clearPodium();
     document.querySelectorAll('.num-chip.drawn').forEach(c => c.classList.remove('drawn'));
     document.querySelectorAll('.row-complete').forEach(r => r.classList.remove('row-complete'));
+    prizes = []; renderPrizes();
     renderHistory();
     saveState();
+    try { saveAll(); } catch (e) {}
   }
 
   function launchConfetti(count = 70) {
@@ -3567,9 +3569,10 @@ async function requestReset() {
     <ul class="cf-list">
       <li><b>${nums.length}</b> número${nums.length === 1 ? '' : 's'} sorteado${nums.length === 1 ? '' : 's'}: ${esc(numTxt)}</li>
       <li><b>${completedRows.length}</b> ganador${completedRows.length === 1 ? '' : 'es'}${wins ? `<ul class="cf-list" style="list-style:none;margin-left:0">${wins}</ul>` : ''}</li>
+      <li>Los <b>premios</b> cargados</li>
       <li>Las marcas de la planilla y el historial</li>
     </ul>
-    <div class="cf-keep">Se conservan: la planilla, los participantes y los premios.</div>`;
+    <div class="cf-keep">Se conservan: la planilla y los participantes.</div>`;
   const r = await cfAsk({ title: '¿Reiniciar el historial?', html,
     buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'pdf', label: '📄 Guardar PDF y reiniciar' }, { id: 'ok', label: 'Sí, reiniciar', danger: true }] });
   if (r === 'cancel') return;
