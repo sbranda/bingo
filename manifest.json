@@ -1,6 +1,6 @@
 {
-  "name": "Sorteo de Números",
-  "short_name": "Sorteo",
+  "name": "Bingo en Vivo",
+  "short_name": "Bingo en Vivo",
   "description": "App de sorteo con bola animada y participantes",
   "start_url": "./index.html",
   "scope": "./",

@@ -1,6 +1,6 @@
 // v4 — la página (index.html) se pide primero a la red, así las actualizaciones aparecen solas.
 // Sin conexión usa la copia guardada. Si cambiás sw.js, subí el número de versión.
-const CACHE = 'sorteo-v4';
+const CACHE = 'sorteo-v5';
 const ASSETS = [
   './',
   './index.html',
