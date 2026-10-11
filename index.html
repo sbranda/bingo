@@ -2096,10 +2096,13 @@
     ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI * 2); ctx.fillStyle = hub; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = '#f5c518'; ctx.stroke();
     ctx.shadowColor = 'transparent';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#f5c518';
     ctx.font = `900 ${wheelCenter.length > 3 ? 17 : 24}px "Playfair Display", Georgia, serif`;
-    ctx.fillText(wheelCenter, cx, cy + 1);
+    const hm = ctx.measureText(wheelCenter);
+    const hdy = (hm.actualBoundingBoxAscent !== undefined)
+      ? (hm.actualBoundingBoxAscent - hm.actualBoundingBoxDescent) / 2 : 8;
+    ctx.fillText(wheelCenter, cx, cy + hdy);
 
     // puntero fijo (arriba)
     ctx.beginPath();
@@ -2151,6 +2154,7 @@
     const circle = cv.clientWidth * 0.58;
     txt.textContent = num;
     txt.style.fontSize = Math.round(circle * (d <= 2 ? 0.52 : d === 3 ? 0.40 : 0.31)) + 'px';
+    centerGlyph(txt);
     box.classList.remove('show');
     void box.offsetWidth;
     box.classList.add('show');
@@ -2328,6 +2332,33 @@
   function loadGridZoom() {
     try { const v = parseFloat(localStorage.getItem('sorteo_gridzoom')); if (v >= 0.6 && v <= 3) gridZ = v; } catch(e) {}
     applyGridZoom();
+  }
+
+  // ── CENTRADO EXACTO DEL NÚMERO (bola y número grande de la rueda) ──
+  const _mctx = document.createElement('canvas').getContext('2d');
+  function centerGlyph(el) {
+    if (!el) return;
+    const t = el.textContent;
+    if (!t) { el.style.transform = ''; return; }
+    const cs = getComputedStyle(el);
+    _mctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = _mctx.measureText(t);
+    if (m.actualBoundingBoxAscent === undefined || m.fontBoundingBoxAscent === undefined) return;
+    const fs   = parseFloat(cs.fontSize);                       // line-height: 1
+    const base = (fs - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+    const mid  = base - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;   // centro visual del número
+    el.style.transform = `translateY(${(fs / 2 - mid).toFixed(2)}px)`;
+  }
+  function watchGlyph(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    new MutationObserver(() => centerGlyph(el)).observe(el, { childList: true, characterData: true, subtree: true });
+    centerGlyph(el);
+  }
+  watchGlyph('ballNum');
+  watchGlyph('wheelBigNum');
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { centerGlyph(document.getElementById('ballNum')); drawWheel(); });
   }
 
   loadFontSize();
