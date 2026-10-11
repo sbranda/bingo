@@ -1132,6 +1132,25 @@
     cursor: pointer;
   }
 
+  .fs-swap {
+    display: none;
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    z-index: 1000;
+    align-items: center; gap: 6px;
+    background: rgba(18,18,30,0.92);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+  .fs-swap:active { transform: scale(0.95); }
+
   /* PLANILLA SOLA */
   body.fs-grid #gridPanel {
     position: fixed;
@@ -1337,6 +1356,7 @@
 </div>
 
 <button class="fs-close" id="fsClose" onclick="closeFS()">✕ Cerrar</button>
+<button class="fs-swap" id="fsSwap" onclick="swapFS()"></button>
 <button class="back-draw" id="backDraw" onclick="backToDraw()">↑ Volver al sorteo</button>
 
 <!-- confetti container -->
@@ -1442,6 +1462,7 @@
     }
 
     isSpinning = true;
+    clearTimeout(goTimer);
 
     if (drawStyle === 'wheel') { spinWheel(allowRepeat, total); return; }
 
@@ -2101,6 +2122,9 @@
     fsMode = mode;
     document.body.classList.add(mode === 'grid' ? 'fs-grid' : 'fs-sorteo');
     document.getElementById('fsClose').style.display = 'flex';
+    const sw = document.getElementById('fsSwap');
+    sw.textContent = (mode === 'grid') ? '🎱 Volver al sorteo' : '📋 Ver planilla';
+    sw.style.display = 'flex';
     applyFsZoom();
     window.scrollTo(0, 0);
     try {
@@ -2114,6 +2138,7 @@
     document.body.classList.remove('fs-sorteo', 'fs-grid');
     fsMode = null;
     document.getElementById('fsClose').style.display = 'none';
+    document.getElementById('fsSwap').style.display = 'none';
     applyFsZoom();
     if (!keepNative) {
       try {
@@ -2129,11 +2154,30 @@
   window.addEventListener('orientationchange', () => setTimeout(applyFsZoom, 250));
 
   // ── IR AL NÚMERO EN LA PLANILLA ──
-  let goTimer = null, rowTimer = null, wantBack = false, drawVisible = true;
+  let goTimer = null, rowTimer = null, wantBack = false, drawVisible = true, lastDrawn = null;
+
+  // abre la planilla sola y va directo a un número
+  function showInGrid(num) {
+    openFS('grid');
+    setTimeout(() => {
+      const chip = (num != null) ? document.getElementById(`nc-${num}`) : null;
+      if (!chip) return;
+      chip.classList.remove('just-drawn'); void chip.offsetWidth; chip.classList.add('just-drawn');
+      chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+  }
+
+  // botón de arriba a la izquierda: alterna entre sorteo y planilla
+  function swapFS() {
+    clearTimeout(goTimer);
+    if (fsMode === 'grid') openFS('sorteo');
+    else showInGrid(lastDrawn);
+  }
 
   function goToNumber(num) {
     const chip = document.getElementById(`nc-${num}`);
     if (!chip) return;
+    lastDrawn = num;
 
     // destaca el número y su fila
     chip.classList.remove('just-drawn'); void chip.offsetWidth; chip.classList.add('just-drawn');
@@ -2145,10 +2189,14 @@
 
     const auto = document.getElementById('autoGo');
     if (auto && !auto.checked) return;
-    if (fsMode === 'sorteo') return;            // en pantalla completa la planilla no se ve
+    lastDrawn = num;
+    clearTimeout(goTimer);
+    if (fsMode === 'sorteo') {                  // pantalla completa: deja ver número y participante, luego pasa a la planilla
+      goTimer = setTimeout(() => showInGrid(num), 3000);
+      return;
+    }
 
     // deja ver un momento el resultado y luego va al número
-    clearTimeout(goTimer);
     goTimer = setTimeout(() => {
       chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (fsMode !== 'grid') { wantBack = true; setTimeout(updateBack, 700); }
