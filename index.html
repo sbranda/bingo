@@ -1105,6 +1105,33 @@
     body.fs-sorteo .wheel-stage { width: min(46vw, 86vh, 560px); }
   }
 
+  /* resaltado del número recién sorteado en la planilla */
+  .num-chip.just-drawn { animation: chipPulse 1.1s ease 3; z-index: 1; }
+  @keyframes chipPulse {
+    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(74,158,255,0); }
+    50%      { transform: scale(1.5);  box-shadow: 0 0 18px 6px rgba(74,158,255,0.75); }
+  }
+  .grid-table tr.row-focus td { background: rgba(74,158,255,0.20) !important; transition: background 0.4s; }
+
+  .back-draw {
+    display: none;
+    position: fixed;
+    left: 50%;
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 800;
+    align-items: center; gap: 6px;
+    background: rgba(18,18,30,0.94);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 11px 20px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+    cursor: pointer;
+  }
+
   /* PLANILLA SOLA */
   body.fs-grid #gridPanel {
     position: fixed;
@@ -1158,6 +1185,14 @@
         <span class="toggle-label">Permitir repeticiones</span>
         <label class="toggle">
           <input type="checkbox" id="allowRepeat" checked>
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
+      <div class="toggle-row" style="margin-bottom:0;flex:1;min-width:180px;">
+        <span class="toggle-label">Ir al número en la planilla</span>
+        <label class="toggle">
+          <input type="checkbox" id="autoGo" checked onchange="saveAutoGo()">
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
         </label>
@@ -1302,6 +1337,7 @@
 </div>
 
 <button class="fs-close" id="fsClose" onclick="closeFS()">✕ Cerrar</button>
+<button class="back-draw" id="backDraw" onclick="backToDraw()">↑ Volver al sorteo</button>
 
 <!-- confetti container -->
 <div class="confetti-container" id="confettiContainer"></div>
@@ -1451,7 +1487,7 @@
     if (chip) {
       chip.classList.add('drawn');
       chip.setAttribute('data-mark', markIcon);
-      chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      goToNumber(num);
     }
 
     // find row
@@ -2092,6 +2128,64 @@
   window.addEventListener('resize', applyFsZoom);
   window.addEventListener('orientationchange', () => setTimeout(applyFsZoom, 250));
 
+  // ── IR AL NÚMERO EN LA PLANILLA ──
+  let goTimer = null, rowTimer = null, wantBack = false, drawVisible = true;
+
+  function goToNumber(num) {
+    const chip = document.getElementById(`nc-${num}`);
+    if (!chip) return;
+
+    // destaca el número y su fila
+    chip.classList.remove('just-drawn'); void chip.offsetWidth; chip.classList.add('just-drawn');
+    const row = chip.closest('tr');
+    document.querySelectorAll('.grid-table tr.row-focus').forEach(r => r.classList.remove('row-focus'));
+    if (row) row.classList.add('row-focus');
+    clearTimeout(rowTimer);
+    rowTimer = setTimeout(() => { if (row) row.classList.remove('row-focus'); chip.classList.remove('just-drawn'); }, 5000);
+
+    const auto = document.getElementById('autoGo');
+    if (auto && !auto.checked) return;
+    if (fsMode === 'sorteo') return;            // en pantalla completa la planilla no se ve
+
+    // deja ver un momento el resultado y luego va al número
+    clearTimeout(goTimer);
+    goTimer = setTimeout(() => {
+      chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (fsMode !== 'grid') { wantBack = true; setTimeout(updateBack, 700); }
+    }, fsMode === 'grid' ? 150 : 1500);
+  }
+
+  function drawZoneEl() { return document.querySelector('.stage > div:nth-of-type(2)'); }
+
+  function updateBack() {
+    const b = document.getElementById('backDraw');
+    if (drawVisible) wantBack = false;
+    b.style.display = (wantBack && !drawVisible && !fsMode) ? 'flex' : 'none';
+  }
+
+  function backToDraw() {
+    wantBack = false; updateBack();
+    const z = drawZoneEl();
+    if (z) z.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  (function () {
+    const z = drawZoneEl();
+    if (z && 'IntersectionObserver' in window) {
+      new IntersectionObserver(es => { drawVisible = es[0].isIntersecting; updateBack(); }, { threshold: 0.15 }).observe(z);
+    }
+  })();
+
+  function saveAutoGo() {
+    try { localStorage.setItem('sorteo_autogo', document.getElementById('autoGo').checked ? '1' : '0'); } catch(e) {}
+  }
+  function loadAutoGo() {
+    try {
+      const v = localStorage.getItem('sorteo_autogo');
+      if (v !== null) document.getElementById('autoGo').checked = (v === '1');
+    } catch(e) {}
+  }
+
   loadFontSize();
   loadBallColor();
   loadMarkIcon();
@@ -2104,6 +2198,7 @@
   displayMax.textContent = document.getElementById('maxVal').value;
   wheelLabels = idleWheelLabels();
   loadDrawStyle();
+  loadAutoGo();
 
   if ('serviceWorker' in navigator) {
     // si aparece una versión nueva, recarga sola (una vez) para mostrarla
