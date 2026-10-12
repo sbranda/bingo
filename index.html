@@ -1318,6 +1318,38 @@
   .help-list .step-num { width: 1.7em; height: 1.7em; font-size: .8rem; margin-top: 1px; }
   .help-list .hx { flex: 0 0 1.7em; text-align: center; }
   .help-sub { margin: 12px 0 4px; color: var(--accent); font-weight: 700; font-size: .85rem; letter-spacing: 1px; text-transform: uppercase; }
+  /* pagos */
+  .pay-tabs { display: flex; gap: 8px; margin: 0 0 12px; }
+  .pay-tab { flex: 1; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); font-family: 'Outfit', sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pay-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(245,197,24,.08); }
+  .pay-pane { display: none; }
+  .pay-chk { display: flex; align-items: center; gap: 10px; font-size: .95rem; color: var(--text); text-transform: none; letter-spacing: 0; margin: 2px 0 12px; cursor: pointer; }
+  .pay-chk input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .pay-price { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+  .pay-price span { font-size: .8rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .pay-price input { width: 130px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; padding: 8px 10px; }
+  .pay-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+  .pay-box { border: 1px solid var(--border); border-radius: 10px; padding: 9px 6px; text-align: center; background: rgba(255,255,255,.03); }
+  .pay-box small { display: block; font-size: .64rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+  .pay-box b { font-size: 1rem; color: var(--text); font-family: 'Outfit', sans-serif; }
+  .pay-box.ok b { color: #6ddc6d; }
+  .pay-box.bad { border-color: rgba(255,90,90,.4); }
+  .pay-box.bad b { color: #ff6b6b; }
+  .pay-box i { display: block; font-style: normal; font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .pay-h { margin: 10px 0 6px; font-size: .78rem; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+  .pay-h.ok { color: #6ddc6d; } .pay-h.bad { color: #ff6b6b; }
+  .pay-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pay-chip { padding: 7px 11px; border-radius: 999px; font-family: 'Outfit', sans-serif; font-size: .88rem; cursor: pointer; border: 1px solid rgba(109,220,109,.5); background: rgba(109,220,109,.08); color: var(--text); -webkit-tap-highlight-color: transparent; }
+  .pay-chip.bad { border-color: rgba(255,90,90,.55); background: rgba(255,90,90,.1); color: #ff9c9c; }
+  .pay-empty { color: var(--muted); font-size: .85rem; font-style: italic; }
+  .pay-col, .pay-cell { display: none; }
+  body.pay-on .pay-col, body.pay-on .pay-cell { display: table-cell; }
+  .pay-cell { width: 46px; text-align: center; }
+  .pay-toggle { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid rgba(255,90,90,.6); background: rgba(255,90,90,.1); color: #ff8080; font-weight: 800; font-size: 1rem; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+  .pay-toggle.paid { border-color: rgba(109,220,109,.7); background: rgba(109,220,109,.12); color: #6ddc6d; }
+  body.pay-on .grid-table tr.unpaid td { background: rgba(255,60,60,.10); }
+  body.pay-on .grid-table tr.unpaid input.name-inp { color: #ff8080; }
+  body.fs-grid .pay-tabs, body.fs-grid .pay-pane { display: none !important; }
   .snd-btn:active { transform: scale(0.93); }
   .snd-btn.muted { border-color: var(--muted); opacity: 0.8; }
 
@@ -1669,6 +1701,14 @@
       <div class="grid-winners-list" id="gridWinnersList"></div>
     </div>
     <div class="panel-title"><span class="step-num">2</span> Planilla de participantes</div>
+    <div class="pay-tabs">
+      <button class="pay-tab active" id="tabPlan" onclick="setPayTab('plan')">📋 Planilla</button>
+      <button class="pay-tab" id="tabPay" onclick="setPayTab('pay')">💲 Pagos <span id="payBadge"></span></button>
+    </div>
+    <div class="pay-pane" id="payPane">
+      <label class="pay-chk"><input type="checkbox" id="payOn" onchange="payOnChange()"> Controlar pagos de los participantes</label>
+      <div id="payBody"></div>
+    </div>
     <div id="participantGrid"><span class="empty-msg">Generá la planilla para cargar participantes</span></div>
   </div>
 
@@ -1931,7 +1971,7 @@
     if (isNaN(cols) || cols < 1 || cols > 6) { alert('Columnas: entre 1 y 6.'); return; }
 
     gridMin = mn; gridMax = mx; gridCols = cols;
-    if (fromUser === true) { clearState(); prizes = []; renderPrizes(); try { saveAll(); } catch (e) {} }
+    if (fromUser === true) { pay.paid = {}; paySave(); clearState(); prizes = []; renderPrizes(); try { saveAll(); } catch (e) {} }
     displayMin.textContent = mn;
     displayMax.textContent = mx;
     usedNumbers.clear();
@@ -1967,7 +2007,7 @@
 
     // table: each row = number chips | single name input
     let html = '<table class="grid-table"><thead><tr>'
-             + '<th>Números</th><th>Participante</th>'
+             + '<th>Números</th><th>Participante</th><th class="pay-col">Pago</th>'
              + '</tr></thead><tbody>';
 
     for (let r = 0; r < rowsPerCol; r++) {
@@ -1983,11 +2023,83 @@
         <td class="chips-cell">${chips}</td>
         <td><input class="name-inp" id="ri-${r}" type="text" placeholder="Nombre…" autocomplete="off"
           onkeydown="if(event.key==='Enter'){${onEnter}}"></td>
+        <td class="pay-cell"><button class="pay-toggle" id="pb-${r}" onclick="payToggleRow(${r})">$</button></td>
       </tr>`;
     }
 
     html += '</tbody></table>';
     document.getElementById('participantGrid').innerHTML = html;
+    payRefresh();
+  }
+
+  // ── PAGOS ──
+  let pay = { on: false, price: '', paid: {} };
+  try { const _p = JSON.parse(localStorage.getItem('sorteo_pay') || 'null'); if (_p && typeof _p === 'object') pay = { on: !!_p.on, price: _p.price || '', paid: _p.paid || {} }; } catch (e) {}
+  function paySave() { try { localStorage.setItem('sorteo_pay', JSON.stringify(pay)); } catch (e) {} }
+  function payMoney(n) { return '$ ' + (Math.round(n * 100) / 100).toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
+  function setPayTab(t) {
+    const isPay = t === 'pay';
+    document.getElementById('tabPlan').classList.toggle('active', !isPay);
+    document.getElementById('tabPay').classList.toggle('active', isPay);
+    document.getElementById('payPane').style.display = isPay ? 'block' : 'none';
+    document.getElementById('participantGrid').style.display = isPay ? 'none' : '';
+    if (isPay) payRender();
+  }
+  function payOnChange() { pay.on = document.getElementById('payOn').checked; paySave(); payRefresh(); payRender(); }
+  function payPriceChange(v) { pay.price = v; paySave(); payRefresh(); payRender(true); }
+  function payToggleRow(r) { if (pay.paid[r]) delete pay.paid[r]; else pay.paid[r] = true; paySave(); payRefresh(); payRender(true); }
+  function payRows() {
+    const out = [];
+    for (let r = 0; r < rowMap.length; r++) {
+      const inp = document.getElementById(`ri-${r}`);
+      const name = inp ? inp.value.trim() : '';
+      const paid = !!pay.paid[r];
+      if (name || paid) out.push({ r, name: name || `Fila ${r + 1} (sin nombre)`, paid });
+    }
+    return out;
+  }
+  // actualiza marcas de la planilla (rojo / botón) y el contador de la solapa
+  function payRefresh() {
+    document.body.classList.toggle('pay-on', !!pay.on);
+    const chk = document.getElementById('payOn'); if (chk) chk.checked = !!pay.on;
+    for (let r = 0; r < rowMap.length; r++) {
+      const tr = document.getElementById(`row-${r}`); if (!tr) continue;
+      const inp = document.getElementById(`ri-${r}`);
+      const named = inp && inp.value.trim() !== '';
+      const paid = !!pay.paid[r];
+      tr.classList.toggle('unpaid', !!pay.on && named && !paid);
+      const b = document.getElementById(`pb-${r}`);
+      if (b) { b.classList.toggle('paid', paid); b.textContent = paid ? '✓' : '$'; b.title = paid ? 'Pagó' : 'No pagó'; }
+    }
+    const badge = document.getElementById('payBadge');
+    if (badge) {
+      if (!pay.on) badge.textContent = '';
+      else { const rows = payRows(); badge.textContent = `(${rows.filter(x => x.paid).length}/${rows.length})`; }
+    }
+  }
+  function payRender(keepFocus) {
+    const body = document.getElementById('payBody'); if (!body) return;
+    document.getElementById('payOn').checked = !!pay.on;
+    if (!pay.on) { body.innerHTML = '<div class="pay-empty">Activá el control para marcar quién pagó. Los que no pagaron se ven en rojo en la planilla.</div>'; return; }
+    const rows = payRows();
+    const paidRows = rows.filter(x => x.paid), unpaidRows = rows.filter(x => !x.paid);
+    const price = parseFloat(String(pay.price).replace(',', '.')) || 0;
+    const chips = (list, bad) => list.length ? list.map(x => `<button class="pay-chip${bad ? ' bad' : ''}" onclick="payToggleRow(${x.r})">${esc(x.name)}</button>`).join('') : '<span class="pay-empty">—</span>';
+    const keep = keepFocus && document.activeElement && document.activeElement.id === 'payPrice';
+    const prevVal = keep ? document.activeElement.value : null;
+    body.innerHTML = `
+      <div class="pay-price"><span>Valor por fila</span><input id="payPrice" type="text" inputmode="decimal" placeholder="0" value="${esc(pay.price)}" oninput="payPriceChange(this.value)"></div>
+      <div class="pay-sum">
+        <div class="pay-box ok"><small>Cobrado</small><b>${payMoney(paidRows.length * price)}</b><i>${paidRows.length} pagaron</i></div>
+        <div class="pay-box bad"><small>Falta cobrar</small><b>${payMoney(unpaidRows.length * price)}</b><i>${unpaidRows.length} sin pagar</i></div>
+        <div class="pay-box"><small>Total</small><b>${payMoney(rows.length * price)}</b><i>${rows.length} participantes</i></div>
+      </div>
+      <div class="pay-h ok">✓ Pagaron (${paidRows.length})</div>
+      <div class="pay-list">${chips(paidRows, false)}</div>
+      <div class="pay-h bad">Sin pagar (${unpaidRows.length})</div>
+      <div class="pay-list">${chips(unpaidRows, true)}</div>
+      <div class="pay-empty" style="margin-top:12px">Tocá un nombre para pasarlo de una lista a la otra.</div>`;
+    if (keep) { const i = document.getElementById('payPrice'); i.focus(); try { i.setSelectionRange(prevVal.length, prevVal.length); } catch (e) {} }
   }
 
   // ── SONIDO Y VIBRACIÓN ──
@@ -3399,6 +3511,8 @@
   restoreState();
   updatePreflight(); setTimeout(updatePreflight, 400);
   document.getElementById('participantGrid').addEventListener('input', saveStateSoon);
+  document.getElementById('participantGrid').addEventListener('input', () => { payRefresh(); if (document.getElementById('payPane').style.display === 'block') payRender(true); });
+  payRefresh();
   loadGridZoom();
 
   if ('serviceWorker' in navigator) {
@@ -3493,6 +3607,7 @@ function collectConfig() {
     prizes: JSON.parse(JSON.stringify(prizes)),
     participantNames: collectNames(),
     gridBuilt: rowMap.length > 0,
+    pay: JSON.parse(JSON.stringify(pay)),
     fontPct, markIcon
   };
 }
@@ -3556,6 +3671,7 @@ function applyBingo(it) {
   if (d.winnersCount) document.getElementById('winnersCount').value = d.winnersCount;
   const rep = document.getElementById('allowRepeat'); rep.checked = !!d.allowRepeat; rep.dispatchEvent(new Event('change', { bubbles: true }));
   prizes = JSON.parse(JSON.stringify(d.prizes || [])); renderPrizes();
+  pay = d.pay ? { on: !!d.pay.on, price: d.pay.price || '', paid: d.pay.paid || {} } : { on: false, price: '', paid: {} }; paySave();
   buildGrid();
   Object.entries(d.participantNames || {}).forEach(([r, v]) => { const i = document.getElementById(`ri-${r}`); if (i) i.value = v; });
   hideThanks(); hideWheelBig();
@@ -3566,6 +3682,7 @@ function applyBingo(it) {
     if (it.state && it.state.sig === gridSig()) { localStorage.setItem('sorteo_state', JSON.stringify(it.state)); restoreState(); }
   } catch (e) {}
   saveState();
+  payRefresh(); payRender();
   setCurrentName(it.name);
   updatePreflight();
 }
