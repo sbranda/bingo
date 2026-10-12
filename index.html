@@ -2536,6 +2536,19 @@
     renderPrizes();
   }
 
+  // ganadores <-> premios: siempre la misma cantidad
+  // al elegir la cantidad de ganadores se generan esa cantidad de premios
+  function syncPrizesFromWinners() {
+    const n = parseInt(document.getElementById('winnersCount').value);
+    if (isNaN(n) || n < 1) return;
+    const target = Math.min(n, 100);
+    while (prizes.length < target) prizes.push({ type: 'money', amount: '', desc: '' });
+    if (prizes.length > target) prizes.length = target;
+    renderPrizes();
+    updatePreflightSoon();
+  }
+  document.getElementById('winnersCount').addEventListener('input', syncPrizesFromWinners);
+
   function renderPrizes() {
     const list = document.getElementById('prizeList');
     if (!prizes.length) {
