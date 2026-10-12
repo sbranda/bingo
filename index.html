@@ -196,6 +196,24 @@
     text-shadow: 0 0 24px rgba(245,197,24,0.35);
     overflow-wrap: anywhere;
   }
+  .tagline-row { --tf: clamp(1.05rem, 4.2vw, 1.5rem); display: flex; align-items: center; justify-content: center; gap: 8px; margin: -6px 16px 22px; }
+  .tagline-row .tagline { margin: 0; font-size: var(--tf); }
+  .tagline-row:not(.has-av):has(.tagline:empty) { display: none; }
+  .tag-av { width: 1.35em; height: 1.35em; font-size: var(--tf); border-radius: 24%; object-fit: cover; flex: 0 0 auto; box-shadow: 0 0 12px rgba(245,197,24,.25); }
+  .tag-av[hidden] { display: none; }
+  body.fs-sorteo .tagline-row, body.fs-grid .tagline-row, body.fs-history .tagline-row { display: none; }
+  /* personalizar: avatares */
+  .av-slots { display: flex; gap: 14px; margin: 0 0 12px; }
+  .av-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: .7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .av-box { position: relative; width: 56px; height: 56px; border-radius: 14px; border: 1.5px dashed var(--border); background: rgba(255,255,255,.03); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; color: var(--muted); font-size: 1.4rem; -webkit-tap-highlight-color: transparent; padding: 0; }
+  .av-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .av-box.active { border: 2px solid var(--accent); }
+  .av-x { font-size: .72rem; color: #ff8080; background: none; border: none; cursor: pointer; padding: 2px 4px; letter-spacing: 0; text-transform: none; }
+  .av-favs { display: flex; flex-wrap: wrap; gap: 10px; }
+  .av-fav { position: relative; width: 56px; height: 56px; }
+  .av-fav .av-box { border-style: solid; }
+  .av-fav .av-del { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: #c62828; color: #fff; font-size: .7rem; line-height: 1; cursor: pointer; padding: 0; }
+  .av-hint { font-size: .78rem; color: var(--muted); margin: 6px 0 0; }
   .tagline::before { content: '🍀\00a0'; font-style: normal; }
   .tagline::after  { content: '\00a0🍀'; font-style: normal; }
   .tagline:empty { display: none; }
@@ -1618,7 +1636,7 @@
 <body>
 
 <h1>🎱 BINGO EN VIVO</h1>
-<p class="tagline" id="tagline"></p>
+<div class="tagline-row" id="taglineRow"><img class="tag-av" id="avL" alt="" hidden><p class="tagline" id="tagline"></p><img class="tag-av" id="avR" alt="" hidden></div>
 <div class="install-wrap"><button type="button" class="install-btn" id="installBtn" onclick="installApp()" hidden>📲 Instalar la app</button></div>
 
 <div class="layout">
@@ -1748,6 +1766,22 @@
     <div>
       <div class="section-label">Frase debajo del título</div>
       <input type="text" id="taglineInput" maxlength="80" placeholder="Ej: ¡Que la suerte te acompañe!" oninput="saveTagline()" autocomplete="off">
+    </div>
+
+    <!-- SEPARADOR -->
+    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+
+    <!-- FILA: avatares junto a los tréboles -->
+    <div>
+      <div class="section-label">Avatares junto a los tréboles</div>
+      <div class="av-slots">
+        <div class="av-slot">Izquierda<button class="av-box active" id="avSlotL" onclick="avSelect('L')" aria-label="Avatar izquierdo">＋</button><button class="av-x" onclick="avClear('L')">Quitar</button></div>
+        <div class="av-slot">Derecha<button class="av-box" id="avSlotR" onclick="avSelect('R')" aria-label="Avatar derecho">＋</button><button class="av-x" onclick="avClear('R')">Quitar</button></div>
+      </div>
+      <div class="section-label" style="margin-top:6px">Mis avatares favoritos</div>
+      <div class="av-favs" id="avFavs"></div>
+      <input type="file" id="avFile" accept="image/*" hidden onchange="avAdd(this)">
+      <p class="av-hint">Elegí el lado (izquierda o derecha) y tocá un favorito para ponerlo. Con ＋ agregás una imagen de tu dispositivo.</p>
     </div>
 
     <!-- SEPARADOR -->
@@ -3504,11 +3538,73 @@
     applyTagline(v);
   }
 
+
+  // ── AVATARES JUNTO A LOS TRÉBOLES ──
+  const AV_MAX = 12;
+  let avFavs = [], avSlots = { L: '', R: '' }, avActive = 'L';
+  function avLoad() {
+    try { const f = JSON.parse(localStorage.getItem('sorteo_avatars') || '[]'); if (Array.isArray(f)) avFavs = f.filter(x => typeof x === 'string'); } catch (e) {}
+    try { avSlots.L = localStorage.getItem('sorteo_av_left') || ''; avSlots.R = localStorage.getItem('sorteo_av_right') || ''; } catch (e) {}
+    avRender();
+  }
+  function avSave() {
+    try {
+      localStorage.setItem('sorteo_avatars', JSON.stringify(avFavs));
+      localStorage.setItem('sorteo_av_left', avSlots.L);
+      localStorage.setItem('sorteo_av_right', avSlots.R);
+    } catch (e) { alert('No se pudo guardar la imagen (almacenamiento lleno o bloqueado).'); }
+  }
+  function avRender() {
+    ['L', 'R'].forEach(k => {
+      const img = document.getElementById('av' + k);
+      if (avSlots[k]) { img.src = avSlots[k]; img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
+      const box = document.getElementById('avSlot' + k);
+      box.innerHTML = avSlots[k] ? `<img src="${avSlots[k]}" alt="">` : '＋';
+      box.classList.toggle('active', avActive === k);
+    });
+    document.getElementById('taglineRow').classList.toggle('has-av', !!(avSlots.L || avSlots.R));
+    const box = document.getElementById('avFavs');
+    box.innerHTML = avFavs.map((d, i) => `<div class="av-fav"><button class="av-box" onclick="avPick(${i})" aria-label="Usar avatar"><img src="${d}" alt=""></button><button class="av-del" onclick="avDel(${i})" aria-label="Eliminar favorito">✕</button></div>`).join('')
+      + (avFavs.length < AV_MAX ? `<div class="av-fav"><button class="av-box" onclick="document.getElementById('avFile').click()" aria-label="Agregar imagen">＋</button></div>` : '');
+  }
+  function avSelect(k) { avActive = k; avRender(); }
+  function avPick(i) {
+    avSlots[avActive] = avFavs[i];
+    avActive = avActive === 'L' ? 'R' : 'L';
+    avSave(); avRender();
+  }
+  function avClear(k) { avSlots[k] = ''; avSave(); avRender(); }
+  function avDel(i) {
+    const d = avFavs[i];
+    avFavs.splice(i, 1);
+    ['L', 'R'].forEach(k => { if (avSlots[k] === d) avSlots[k] = ''; });
+    avSave(); avRender();
+  }
+  function avAdd(input) {
+    const f = input.files && input.files[0]; input.value = '';
+    if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+      const m = Math.min(im.width, im.height), sx = (im.width - m) / 2, sy = (im.height - m) / 2;
+      c.getContext('2d').drawImage(im, sx, sy, m, m, 0, 0, S, S);
+      URL.revokeObjectURL(url);
+      let data = c.toDataURL('image/webp', 0.85);
+      if (!data.startsWith('data:image/webp')) data = c.toDataURL('image/jpeg', 0.85);
+      if (avFavs.length >= AV_MAX) avFavs.pop();
+      avFavs.push(data);
+      avSlots[avActive] = data; avActive = avActive === 'L' ? 'R' : 'L';
+      avSave(); avRender();
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); alert('No se pudo leer esa imagen.'); };
+    im.src = url;
+  }
+
   function loadThanks() {
     try { const v = localStorage.getItem('sorteo_thanks'); if (v) document.getElementById('thanksInput').value = v; } catch(e) {}
   }
 
-  loadTagline();
+  loadTagline(); avLoad();
   loadFontSize();
   loadBallColor();
   loadMarkIcon();
