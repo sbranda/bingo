@@ -1311,6 +1311,13 @@
     outline: none;
     padding: 0;
   }
+  .help-btn { right: auto; left: calc(10px + env(safe-area-inset-left, 0px)); font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--accent); }
+  body.fs-sorteo .help-btn, body.fs-grid .help-btn, body.fs-history .help-btn { display: none; }
+  .help-list { margin: 10px 0 0; padding: 0; list-style: none; text-align: left; }
+  .help-list li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 9px; font-size: .9rem; line-height: 1.35; }
+  .help-list .step-num { width: 1.7em; height: 1.7em; font-size: .8rem; margin-top: 1px; }
+  .help-list .hx { flex: 0 0 1.7em; text-align: center; }
+  .help-sub { margin: 12px 0 4px; color: var(--accent); font-weight: 700; font-size: .85rem; letter-spacing: 1px; text-transform: uppercase; }
   .snd-btn:active { transform: scale(0.93); }
   .snd-btn.muted { border-color: var(--muted); opacity: 0.8; }
 
@@ -1835,6 +1842,7 @@
 
 </div>
 
+<button class="snd-btn help-btn" id="helpBtn" onclick="openHelp()" aria-label="Ayuda" title="Ayuda">?</button>
 <button class="snd-btn" id="sndBtn" onclick="toggleSound()" aria-label="Sonido" title="Sonido activado">🔊</button>
 <button class="fs-close" id="fsClose" onclick="closeFS()">✕ Cerrar</button>
 <div class="grid-zoom" id="gridZoom">
@@ -3433,6 +3441,29 @@ function cfAsk({ title, html, buttons }) {
     document.addEventListener('keydown', onKey);
     m.classList.add('show');
   });
+}
+
+function openHelp() {
+  const st = (n, t) => `<li><span class="step-num">${n}</span><span>${t}</span></li>`;
+  const ex = (i, t) => `<li><span class="hx">${i}</span><span>${t}</span></li>`;
+  cfAsk({ title: 'Cómo usar Bingo en Vivo', html: `
+    Seguí los pasos de arriba hacia abajo:
+    <ul class="help-list">
+      ${st(1, '<b>Configuración:</b> elegí desde qué número hasta cuál, las columnas y cuántos ganadores. Tocá <b>Generar planilla</b>.')}
+      ${st(2, '<b>Planilla:</b> escribí el nombre de cada participante en su fila.')}
+      ${st(3, '<b>Premios:</b> agregá un premio por cada ganador (dinero u objeto).')}
+      ${st(4, '<b>Personalizar</b> (opcional): ícono de marca, frase, mensaje final, estilo y color.')}
+      ${st(5, '<b>Sorteo:</b> tocá la bola o la rueda para sacar un número. Se marca solo en la planilla.')}
+      ${st(6, '<b>Resultados:</b> historial, deshacer el último número, reiniciar y compartir o imprimir.')}
+    </ul>
+    <div class="help-sub">Extras</div>
+    <ul class="help-list">
+      ${ex('📚', '<b>Mis bingos guardados:</b> guardá con nombre y volvé a abrirlo cuando quieras.')}
+      ${ex('✅', '<b>Antes de sortear:</b> te avisa si falta algún paso.')}
+      ${ex('🔊', 'Botón de sonido arriba a la derecha para silenciar.')}
+      ${ex('⛶', '<b>Pantalla completa:</b> ideal para proyectar el sorteo.')}
+      ${ex('⚠️', 'Reiniciar el historial o generar la planilla borra los premios.')}
+    </ul>`, buttons: [{ id: 'ok', label: 'Entendido', primary: true }] });
 }
 
 const fmtDateTime = d => new Date(d).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
