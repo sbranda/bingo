@@ -786,6 +786,7 @@
   }
 
   .btn-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-resetall { border-color: rgba(255,90,90,.45); color: #ff8080; }
 .undo-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
   /* tira de últimos números */
@@ -1862,6 +1863,7 @@
       <button class="btn-reset" onclick="requestReset()">↺ Reiniciar historial</button>
       <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
+      <button class="btn-reset btn-resetall" onclick="requestResetAll()" style="margin-left:8px;">🗑 Restablecer todo</button>
     </div>
   </div>
 
@@ -3709,6 +3711,39 @@ async function libDelete(id) {
   libStore(libLoad().filter(x => x.id !== id));
   if (getCurrentName() === it.name) { /* el bingo en pantalla sigue; solo deja de estar guardado */ }
   renderLibrary();
+}
+
+
+// ── RESTABLECER TODO ──
+async function requestResetAll() {
+  if (isSpinning) return;
+  const r = await cfAsk({ title: '¿Restablecer todo?', html: `Se va a volver al comienzo, como una app nueva. Se borran:
+    <ul class="cf-list">
+      <li>El rango, las columnas y los ganadores (vuelven a 1 a 10, 2 columnas, 1 ganador)</li>
+      <li>La planilla y los nombres de los participantes</li>
+      <li>Los premios y los pagos</li>
+      <li>Los números sorteados, los ganadores y el historial</li>
+    </ul>
+    <div class="cf-keep">Se conservan: tus bingos guardados, el sonido y la personalización (ícono, frase, mensaje final, estilo y color).</div>`,
+    buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'pdf', label: '📄 Guardar PDF y restablecer' }, { id: 'ok', label: 'Sí, restablecer todo', danger: true }] });
+  if (r === 'cancel') return;
+  if (r === 'pdf') { try { await rptAction('pdf', true); } catch (e) {} }
+  resetAll();
+}
+function resetAll() {
+  document.getElementById('minVal').value = 1;
+  document.getElementById('maxVal').value = 10;
+  document.getElementById('colCount').value = 2;
+  document.getElementById('winnersCount').value = 1;
+  const rep = document.getElementById('allowRepeat'); rep.checked = false; rep.dispatchEvent(new Event('change', { bubbles: true }));
+  try { Object.keys(pfIgnored).forEach(k => delete pfIgnored[k]); } catch (e) {}
+  buildGrid(true);          // planilla nueva; borra estado, premios y pagos
+  resetHistory();
+  try { saveAll(); } catch (e) {}
+  setCurrentName('');
+  setPayTab('plan');
+  updatePreflight();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── REINICIAR CON RESUMEN ──
