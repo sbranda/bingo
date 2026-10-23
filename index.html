@@ -887,13 +887,24 @@
     width: 8px;
     height: 8px;
     opacity: 0;
-    animation: confettiFall 1.5s ease forwards;
+    will-change: transform;
+    animation: confettiFall 2.4s cubic-bezier(.25,.6,.5,1) forwards;
   }
 
   @keyframes confettiFall {
-    0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(80vh) rotate(720deg); opacity: 0; }
+    0%   { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translate3d(var(--dx, 0px), 105vh, 0) rotate(var(--rot, 720deg)); opacity: 0; }
   }
+  /* fotos de premios */
+  .prize-photo { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; border: 1.5px dashed var(--border); background: rgba(255,255,255,.04); color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+  .prize-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .prize-photo.has { border-style: solid; border-color: var(--accent); }
+  .winner-prize { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 6px; animation: fadeUp 0.5s ease; }
+  .winner-prize img { max-width: min(78%, 280px); max-height: 220px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 28px rgba(245,197,24,.35); }
+  .winner-prize .prize-tag { font-size: .95rem; padding: 4px 14px; white-space: normal; text-align: center; }
+  body.fs-sorteo .winner-prize img { max-height: 30vh; max-width: min(70vw, 420px); }
+  .podium-img { width: 3.2em; height: 3.2em; border-radius: 12px; object-fit: cover; border: 1.5px solid var(--accent); }
 
   /* responsive */
   @media (max-width: 680px) {
@@ -1735,6 +1746,7 @@
   <div class="panel step-panel" id="panelPrizes">
     <div class="panel-title"><span class="step-num">3</span> Premios</div>
     <div id="prizeList"></div>
+    <input type="file" id="prizeFile" accept="image/*" hidden onchange="prizePhotoPicked(this)">
     <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
   </div>
 
@@ -2531,18 +2543,26 @@
       ? rowMap[rowIdx].filter(n => !usedNumbers.has(n)).length
       : 0;
 
+    const wp = rowComplete ? prizes[completedRows.length - 1] : null;
+    const prizeBlock = (wp && (formatPrize(wp) !== 'Premio' || wp.img) ) ? `
+        <div class="winner-prize">
+          ${wp.type === 'object' && wp.img ? `<img src="${wp.img}" alt="">` : ''}
+          ${formatPrize(wp) ? `<span class="prize-tag ${wp.type === 'money' ? 'money' : 'object'}">${wp.type === 'money' ? '💰' : '🎁'} ${esc(formatPrize(wp))}</span>` : ''}
+        </div>` : '';
     if (sorteoFinalizado && rowComplete) {
       const maxWinners = parseInt(document.getElementById('winnersCount').value) || 1;
       card.innerHTML = `
         <span class="winner-label">🎉 ¡SORTEO FINALIZADO!</span>
         <span class="winner-name">${name || `Fila ${rowIdx + 1}`}</span>
         <span class="winner-num">${maxWinners} ganador${maxWinners > 1 ? 'es' : ''} encontrado${maxWinners > 1 ? 's' : ''}</span>
+        ${prizeBlock}
       `;
     } else if (rowComplete) {
       card.innerHTML = `
         <span class="winner-label">🏆 ¡GANADOR! N° ${num}</span>
         <span class="winner-name">${name || `Fila ${rowIdx + 1}`}</span>
         <span class="winner-num">Números: ${rowMap[rowIdx].join(', ')}</span>
+        ${prizeBlock}
       `;
     } else if (name) {
       card.innerHTML = `
@@ -2570,6 +2590,28 @@
   function removePrize(i) {
     prizes.splice(i, 1);
     renderPrizes();
+  }
+
+  // fotos de premios (objetos)
+  let prizePhotoIdx = -1;
+  function prizePhoto(i) { prizePhotoIdx = i; document.getElementById('prizeFile').click(); }
+  function prizePhotoClear(i) { if (prizes[i]) { delete prizes[i].img; renderPrizes(); try { saveAll(); } catch (e) {} } }
+  function prizePhotoPicked(input) {
+    const f = input.files && input.files[0]; input.value = '';
+    const i = prizePhotoIdx;
+    if (!f || !prizes[i]) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const MAX = 480, k = Math.min(1, MAX / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      prizes[i].img = c.toDataURL('image/jpeg', 0.78);
+      renderPrizes();
+      try { saveAll(); } catch (e) {}
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); alert('No se pudo leer esa imagen.'); };
+    im.src = url;
   }
 
   // ganadores <-> premios: siempre la misma cantidad
@@ -2610,8 +2652,10 @@
         ` : `
           <input class="prize-desc" type="text" placeholder="Nombre del objeto / premio"
             value="${p.desc}"
-            style="flex:1"
+            style="flex:1; min-width:0"
             oninput="prizes[${i}].desc=this.value">
+          <button class="prize-photo${p.img ? ' has' : ''}" onclick="prizePhoto(${i})" title="${p.img ? 'Cambiar foto' : 'Agregar foto'}" aria-label="Foto del premio">${p.img ? `<img src="${p.img}" alt="">` : '📷'}</button>
+          ${p.img ? `<button class="btn-del" onclick="prizePhotoClear(${i})" title="Quitar foto" style="font-size:.8rem">🗑</button>` : ''}
         `}
         <button class="btn-del" onclick="removePrize(${i})" title="Quitar">×</button>
       </div>
@@ -2644,6 +2688,7 @@
       return `
         <div class="podium-item">
           <span class="podium-medal">${medals[i] || `${i+1}°`}</span>
+          ${prize && prize.type === 'object' && prize.img ? `<img class="podium-img" src="${prize.img}" alt="">` : ''}
           <span class="podium-name">${w.name}</span>
           ${prizeStr ? `<span class="prize-tag ${tagClass}">${tagIcon} ${prizeStr}</span>` : ''}
           <span class="podium-nums">Números: ${w.nums.join(', ')}</span>
@@ -2756,22 +2801,28 @@
 
   function launchConfetti(count = 70) {
     const container = document.getElementById('confettiContainer');
-    const colors = ['#f5c518', '#ff4f4f', '#4fc3f7', '#81c784', '#ff8a65', '#ce93d8'];
+    const colors = ['#f5c518', '#ff4f4f', '#4fc3f7', '#81c784', '#ff8a65', '#ce93d8', '#ffffff', '#ff80ab', '#69f0ae', '#ffd54f'];
     container.innerHTML = '';
-    for (let i = 0; i < count; i++) {
+    const total = Math.round(count * 2.6);      // mucha más lluvia de confites
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < total; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-piece';
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.top = '-10px';
+      const shape = Math.random();
+      const w = 6 + Math.random() * 9;
+      p.style.left = (Math.random() * 104 - 2) + 'vw';
       p.style.background = colors[Math.floor(Math.random() * colors.length)];
-      p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-      p.style.width  = (6 + Math.random() * 8) + 'px';
-      p.style.height = (6 + Math.random() * 8) + 'px';
-      p.style.animationDelay    = (Math.random() * 0.7) + 's';
-      p.style.animationDuration = (1.2 + Math.random() * 0.8) + 's';
-      container.appendChild(p);
+      p.style.width  = (shape < 0.35 ? w * 0.45 : w) + 'px';
+      p.style.height = (shape < 0.35 ? w * 1.6 : w) + 'px';
+      p.style.borderRadius = shape > 0.75 ? '50%' : '2px';
+      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      p.style.setProperty('--rot', (360 + Math.random() * 900) * (Math.random() > 0.5 ? 1 : -1) + 'deg');
+      p.style.animationDelay    = (Math.random() * 1.8) + 's';
+      p.style.animationDuration = (2.2 + Math.random() * 1.6) + 's';
+      frag.appendChild(p);
     }
-    setTimeout(() => { container.innerHTML = ''; }, 2600);
+    container.appendChild(frag);
+    setTimeout(() => { container.innerHTML = ''; }, 6200);
   }
 
   // ── GUARDAR / CARGAR ──
