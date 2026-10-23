@@ -3402,6 +3402,7 @@
     sw.style.display = 'flex';
     document.getElementById('fsHist').style.display = (mode === 'history') ? 'none' : 'block';
     document.getElementById('fsWin').style.display = (mode === 'winners') ? 'none' : 'block';
+    if (mode === 'grid') setPayTab('plan');   // la planilla sola siempre muestra números y participantes
     if (mode === 'history') renderHistoryPanel();
     if (mode === 'winners') renderWinnersPanel();
     applyFsZoom();
@@ -3479,6 +3480,7 @@
 
     // deja ver un momento el resultado y luego va al número
     goTimer = setTimeout(() => {
+      setPayTab('plan');
       if (fsMode !== 'grid') setStep(2, true);
       chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (fsMode !== 'grid') { wantBack = true; setTimeout(updateBack, 700); }
