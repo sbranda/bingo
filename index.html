@@ -1073,8 +1073,10 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+    flex-wrap: wrap;
     animation: slideIn 0.2s ease;
   }
+  .prize-row .btn-del { margin-left: auto; }
 
   .prize-pos {
     font-family: 'Playfair Display', serif;
@@ -1111,8 +1113,10 @@
     font-size: 0.9rem;
     padding: 7px 10px;
     outline: none;
-    width: 110px;
-    flex-shrink: 0;
+    width: 100px;
+    max-width: 40%;
+    flex-shrink: 1;
+    min-width: 0;
     transition: border-color 0.2s;
   }
 
@@ -1127,7 +1131,8 @@
     font-size: 0.85rem;
     padding: 7px 10px;
     outline: none;
-    flex: 1;
+    flex: 1 1 130px;
+    min-width: 0;
     transition: border-color 0.2s;
   }
 
@@ -1846,6 +1851,16 @@
         <div class="icon-opt" data-icon="🎲" onclick="setMarkIcon(this)" title="Dado">🎲</div>
         <div class="icon-opt" data-icon="💰" onclick="setMarkIcon(this)" title="Dinero">💰</div>
         <div class="icon-opt" data-icon="🎁" onclick="setMarkIcon(this)" title="Regalo">🎁</div>
+        <div class="icon-opt" data-icon="🍀" onclick="setMarkIcon(this)" title="Trébol">🍀</div>
+        <div class="icon-opt" data-icon="❤️" onclick="setMarkIcon(this)" title="Corazón">❤️</div>
+        <div class="icon-opt" data-icon="🌟" onclick="setMarkIcon(this)" title="Brillo">🌟</div>
+        <div class="icon-opt" data-icon="🎉" onclick="setMarkIcon(this)" title="Fiesta">🎉</div>
+        <div class="icon-opt" data-icon="🎈" onclick="setMarkIcon(this)" title="Globo">🎈</div>
+        <div class="icon-opt" data-icon="🦄" onclick="setMarkIcon(this)" title="Unicornio">🦄</div>
+        <div class="icon-opt" data-icon="🌈" onclick="setMarkIcon(this)" title="Arcoíris">🌈</div>
+        <div class="icon-opt" data-icon="⚽" onclick="setMarkIcon(this)" title="Pelota">⚽</div>
+        <div class="icon-opt" data-icon="🥇" onclick="setMarkIcon(this)" title="Medalla">🥇</div>
+        <div class="icon-opt" data-icon="🔔" onclick="setMarkIcon(this)" title="Campana">🔔</div>
       </div></div></details>
     <details class="acc"><summary>Frase debajo del título</summary><div class="acc-body"><input type="text" id="taglineInput" maxlength="80" placeholder="Ej: ¡Que la suerte te acompañe!" oninput="saveTagline()" autocomplete="off"></div></details>
     <details class="acc"><summary>Avatares junto a los tréboles</summary><div class="acc-body"><div class="av-slots">
@@ -2430,6 +2445,7 @@
   let curStep = 1;
   function setStep(n, noScroll) {
     curStep = n;
+    if (n === 2 && noScroll) { try { setPayTab('plan'); } catch (e) {} }
     Object.keys(STEP_PANELS).forEach(k => STEP_PANELS[k].forEach(id => {
       const el = id === 'stage' ? document.querySelector('.stage') : document.getElementById(id);
       if (el) el.classList.toggle('step-off', Number(k) !== n);
@@ -2743,7 +2759,6 @@
         ` : `
           <input class="prize-desc" type="text" placeholder="Nombre del objeto / premio"
             value="${p.desc}"
-            style="flex:1; min-width:0"
             oninput="prizes[${i}].desc=this.value">
           <button class="prize-photo${p.img ? ' has' : ''}" onclick="prizePhoto(${i})" title="${p.img ? 'Cambiar foto' : 'Agregar foto'}" aria-label="Foto del premio">${p.img ? `<img src="${p.img}" alt="">` : '📷'}</button>
           ${p.img ? `<button class="btn-del" onclick="prizePhotoClear(${i})" title="Quitar foto" style="font-size:.8rem">🗑</button>` : ''}
