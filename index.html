@@ -100,6 +100,21 @@
   .acc-body { padding: 2px 14px 14px; }
   @media (max-width: 400px) { .stepbar { padding-left: 52px; padding-right: 52px; } }
   .step-off { display: none !important; }
+  /* cartel A SORTEAR */
+  .go-banner { position: fixed; inset: 0; z-index: 1500; display: none; align-items: center; justify-content: center; pointer-events: none; }
+  .go-banner.show { display: flex; }
+  .go-banner span { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(1.8rem, 9.5vw, 4.5rem); letter-spacing: 2px; color: #231700; padding: .25em .55em; max-width: 90vw; text-align: center; line-height: 1.1; border-radius: .3em; background: linear-gradient(135deg, #fff2a8 0%, #f5c518 40%, #e0a000 75%, #ffd94a 100%); border: 3px solid #fffbe0; box-shadow: 0 14px 50px rgba(0,0,0,.6), 0 0 60px rgba(245,197,24,.7); animation: goPop 1.5s cubic-bezier(.2,1.4,.4,1) both; text-shadow: 0 2px 0 rgba(255,255,255,.45); }
+  @keyframes goPop { 0% { opacity: 0; transform: scale(.4) rotate(-6deg); } 18% { opacity: 1; transform: scale(1.08) rotate(-3deg); } 30% { transform: scale(1) rotate(-3deg); } 80% { opacity: 1; transform: scale(1) rotate(-3deg); } 100% { opacity: 0; transform: scale(1.15) rotate(-3deg); } }
+  /* premio en dinero, bien grande */
+  .prize-big { position: fixed; inset: 0; z-index: 1400; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .3em; padding: 20px; text-align: center; background: radial-gradient(ellipse at center, rgba(5,5,12,.88) 0%, rgba(5,5,12,.62) 75%); cursor: pointer; }
+  .prize-big.show { display: flex; animation: pbIn .5s cubic-bezier(.2,1.3,.4,1) both; }
+  @keyframes pbIn { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+  .prize-big .pb-who { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: clamp(1.1rem, 5vw, 2rem); color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 2px 12px #000; }
+  .prize-big .pb-name { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(2rem, 10vw, 4.5rem); color: var(--accent); text-shadow: 0 0 30px rgba(245,197,24,.6), 0 4px 14px #000; line-height: 1.05; overflow-wrap: anywhere; }
+  .prize-big .pb-amt { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(3.2rem, 21vw, 11rem); line-height: 1; color: #6ddc6d; text-shadow: 0 0 40px rgba(109,220,109,.7), 0 6px 20px #000; animation: pbPulse 1.4s ease-in-out infinite; overflow-wrap: anywhere; }
+  .prize-big .pb-desc { font-family: 'Outfit', sans-serif; font-size: clamp(1rem, 4.5vw, 1.8rem); color: #fff; text-shadow: 0 2px 10px #000; }
+  .prize-big .pb-hint { margin-top: .8em; font-family: 'Outfit', sans-serif; font-size: .75rem; color: rgba(255,255,255,.55); letter-spacing: 2px; text-transform: uppercase; }
+  @keyframes pbPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   /* paso 5 compacto: que entre sin scrollear */
   .stage .step-head { display: none; }
   .stage.step-panel { padding: 12px 12px 16px; }
@@ -2049,6 +2064,8 @@
 
 <footer class="app-footer">Desarrollado por @sebranda</footer>
 
+<div class="go-banner" id="goBanner"><span>🎱 ¡A SORTEAR!</span></div>
+<div class="prize-big" id="prizeBig" onclick="hidePrizeBig()"></div>
 <!-- confetti container -->
 <div class="confetti-container" id="confettiContainer"></div>
 
@@ -2443,8 +2460,12 @@
   const STEP_PANELS = { 1: ['panelLibrary', 'panelConfig'], 2: ['gridPanel'], 3: ['panelPrizes'], 4: ['panelCustom'], 5: ['stage'], 6: ['panelResults'] };
   const STEP_OF = { panelConfig: 1, panelLibrary: 1, gridPanel: 2, panelPrizes: 3, panelCustom: 4, stage: 5, panelResults: 6 };
   let curStep = 1;
-  function setStep(n, noScroll) {
+  function setStep(n, noScroll, quiet) {
+    const prev = curStep;
     curStep = n;
+    if (n >= 4) { try { localStorage.setItem('sorteo_step4', '1'); } catch (e) {} }
+    stepSeen4();
+    if (n === 5 && prev !== 5 && !quiet && !noScroll) showGo();
     if (n === 2 && noScroll) { try { setPayTab('plan'); } catch (e) {} }
     Object.keys(STEP_PANELS).forEach(k => STEP_PANELS[k].forEach(id => {
       const el = id === 'stage' ? document.querySelector('.stage') : document.getElementById(id);
@@ -2458,6 +2479,17 @@
       const y = document.getElementById('stepSentinel').offsetTop;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
+  }
+  function stepSeen4() {
+    let seen = false; try { seen = localStorage.getItem('sorteo_step4') === '1'; } catch (e) {}
+    const b = document.querySelector('#stepbar button[data-step="4"]');
+    if (b) b.classList.toggle('done', seen);
+  }
+  let goTimer2 = null;
+  function showGo() {
+    const el = document.getElementById('goBanner'); if (!el) return;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(goTimer2); goTimer2 = setTimeout(() => el.classList.remove('show'), 1500);
   }
   function stepMarks(items) {
     const m = { 1: 'grid', 2: 'names', 3: 'prizes' };
@@ -2638,6 +2670,7 @@
     if (rowComplete) { Sound.win(sorteoFinalizado); Sound.horn(0.1); if (sorteoFinalizado) { Sound.horn(0.95); Sound.horn(1.8); } vibrate(sorteoFinalizado ? [150, 70, 150, 70, 150, 70, 400] : [120, 60, 120, 60, 260]); }
     else vibrate(45);
     if (rowComplete) launchConfetti(sorteoFinalizado ? 120 : 70);
+    if (rowComplete) { const wp0 = prizes[completedRows.length - 1], wn0 = name || `Fila ${rowIdx + 1}`; setTimeout(() => showPrizeBig(wp0, wn0), 450); }
     if (rowComplete && sorteoFinalizado) showThanks();
     if (rowComplete && document.body.classList.contains('fs-sorteo')) setTimeout(() => { const c = document.getElementById('winnerCard'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 500);
     saveState();
@@ -2903,6 +2936,21 @@
     renderHistory();
     saveState();
     try { saveAll(); } catch (e) {}
+  }
+
+  function hidePrizeBig() { const el = document.getElementById('prizeBig'); el.classList.remove('show'); clearTimeout(window._pbT); }
+  function showPrizeBig(prize, name) {
+    if (!prize || prize.type !== 'money') return;
+    const amt = parseFloat(prize.amount);
+    const amtTxt = !isNaN(amt) ? '$\u202F' + amt.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
+    if (!amtTxt && !prize.desc) return;
+    const el = document.getElementById('prizeBig');
+    el.innerHTML = `<div class="pb-who">🏆 ¡Ganó!</div><div class="pb-name">${esc(name || '')}</div>` +
+      (amtTxt ? `<div class="pb-amt">💰 ${esc(amtTxt)}</div>` : '') +
+      (prize.desc ? `<div class="pb-desc">${esc(prize.desc)}</div>` : '') +
+      '<div class="pb-hint">Tocá para cerrar</div>';
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(window._pbT); window._pbT = setTimeout(hidePrizeBig, 9000);
   }
 
   function launchConfetti(count = 70) {
@@ -3512,7 +3560,7 @@
 
   function backToDraw() {
     wantBack = false; updateBack();
-    setStep(5);
+    setStep(5, false, true);
   }
 
   (function () {
@@ -4055,6 +4103,7 @@ function resetAll() {
   try { saveAll(); } catch (e) {}
   setCurrentName('');
   setPayTab('plan');
+  try { localStorage.removeItem('sorteo_step4'); } catch (e) {}
   updatePreflight();
   setStep(1);
 }
