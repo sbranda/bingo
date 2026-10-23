@@ -80,6 +80,47 @@
   .pf-item.skip { opacity: 0.6; }
   body.fs-sorteo .preflight, body.fs-grid .preflight, body.fs-history .preflight, body.fs-winners .preflight { display: none; }
 
+  /* barra de pasos */
+  .stepbar { position: sticky; top: 0; z-index: 800; display: flex; gap: 2px; width: 100%; max-width: 860px; box-sizing: border-box; margin: 0 auto 12px; padding: 8px 58px; background: rgba(10,10,18,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); border-radius: 0 0 14px 14px; }
+  .stepbar button { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 5px 0 4px; cursor: pointer; color: var(--muted); font-family: 'Outfit', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .stepbar button b { display: flex; align-items: center; justify-content: center; width: 1.9em; height: 1.9em; border-radius: 50%; border: 1.5px solid var(--border); font-size: .85rem; font-weight: 800; color: var(--muted); background: var(--bg); }
+  .stepbar button span { font-size: .58rem; letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .stepbar button.done b { border-color: rgba(129,199,132,.7); color: #81c784; }
+  .stepbar button.done b::after { content: '✓'; }
+  .stepbar button.done b > i { display: none; }
+  .stepbar button.active { border-color: var(--accent); background: rgba(245,197,24,.08); }
+  .stepbar button.active b { background: var(--accent); border-color: var(--accent); color: #111; }
+  .stepbar button.active span { color: var(--accent); font-weight: 700; }
+  .acc { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; background: rgba(255,255,255,.02); }
+  .acc summary { list-style: none; cursor: pointer; padding: 13px 14px; font-family: 'Outfit', sans-serif; font-size: .92rem; color: var(--text); display: flex; justify-content: space-between; align-items: center; -webkit-tap-highlight-color: transparent; }
+  .acc summary::-webkit-details-marker { display: none; }
+  .acc summary::after { content: '▾'; color: var(--accent); }
+  .acc[open] summary::after { content: '▴'; }
+  .acc[open] { border-color: rgba(245,197,24,.35); }
+  .acc-body { padding: 2px 14px 14px; }
+  @media (max-width: 400px) { .stepbar { padding-left: 52px; padding-right: 52px; } }
+  .step-off { display: none !important; }
+  /* paso 5 compacto: que entre sin scrollear */
+  .stage .step-head { display: none; }
+  .stage.step-panel { padding: 12px 12px 16px; }
+  .stage { gap: 12px; }
+  .stage .stage-tools { gap: 6px; }
+  .stage .tool-btn { padding: 7px 10px; font-size: .78rem; }
+  .stage .range-bar { gap: 8px; }
+  .stage .range-chip { padding: 4px 12px; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+  .stage .range-chip .label { margin: 0; }
+  .stage .range-chip .value { font-size: 1.2rem; }
+  .stage .ball-hint { margin-top: 12px; }
+  body.fs-sorteo .stage.step-off { display: flex !important; }
+  body.fs-grid #gridPanel.step-off { display: block !important; }
+  body.fs-sorteo .stepbar, body.fs-grid .stepbar, body.fs-history .stepbar, body.fs-winners .stepbar { display: none; }
+  /* checklist compacto */
+  .preflight { padding: 8px 10px; flex-direction: row; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .preflight .pf-head { width: 100%; font-size: .8rem; }
+  .preflight .pf-item { width: auto; flex: 1 1 auto; padding: 6px 10px; font-size: .78rem; }
+  .preflight .pf-item .pf-sub { display: none; }
+  .preflight .pf-item .pf-ic { font-size: .95rem; width: 1.2em; }
+  .preflight.ok { padding: 6px 12px; }
   .pf-modal {
     display: none; position: fixed; inset: 0; z-index: 3000;
     background: rgba(5,5,12,0.78); backdrop-filter: blur(4px);
@@ -1680,6 +1721,16 @@
 <div class="tagline-row" id="taglineRow"><img class="tag-av" id="avL" alt="" hidden><p class="tagline" id="tagline"></p><img class="tag-av" id="avR" alt="" hidden></div>
 <div class="install-wrap"><button type="button" class="install-btn" id="installBtn" onclick="installApp()" hidden>📲 Instalar la app</button></div>
 
+<div id="stepSentinel" style="height:0"></div>
+<nav class="stepbar" id="stepbar" aria-label="Pasos">
+  <button data-step="1" onclick="setStep(1)"><b><i>1</i></b><span>Config</span></button>
+  <button data-step="2" onclick="setStep(2)"><b><i>2</i></b><span>Planilla</span></button>
+  <button data-step="3" onclick="setStep(3)"><b><i>3</i></b><span>Premios</span></button>
+  <button data-step="4" onclick="setStep(4)"><b><i>4</i></b><span>Extras</span></button>
+  <button data-step="5" onclick="setStep(5)"><b><i>5</i></b><span>Sorteo</span></button>
+  <button data-step="6" onclick="setStep(6)"><b><i>6</i></b><span>Resultados</span></button>
+</nav>
+
 <div class="layout">
 
   <!-- LISTA DE CONTROL -->
@@ -1718,7 +1769,7 @@
         <label>Ganadores</label>
         <input type="number" id="winnersCount" value="1" min="1">
       </div>
-      <button class="btn-sm" style="padding:9px 20px;" onclick="buildGrid(true)">Generar planilla</button>
+      <button class="btn-sm" style="padding:9px 20px;" onclick="buildGrid(true); if (rowMap.length) setStep(2)">Generar planilla</button>
       <button class="btn-sm" style="padding:9px 20px;background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;" onclick="saveAll()" id="btnSave">💾 Guardar</button>
       <div class="toggle-row" style="margin-bottom:0;flex:1;min-width:180px;">
         <span class="toggle-label">Permitir repeticiones</span>
@@ -1784,10 +1835,7 @@
   <div class="panel step-panel" id="panelCustom">
     <div class="panel-title"><span class="step-num">4</span> Personalizar <small class="step-opt">(opcional)</small></div>
 
-    <!-- FILA 2: ícono sorteado -->
-    <div style="margin-bottom:16px;">
-      <div class="section-label">Ícono sorteado</div>
-      <div class="icon-list" id="iconList">
+    <details class="acc"><summary>Ícono sorteado</summary><div class="acc-body"><div class="icon-list" id="iconList">
         <div class="icon-opt active" data-icon="✅" onclick="setMarkIcon(this)" title="Tilde">✅</div>
         <div class="icon-opt" data-icon="⭐" onclick="setMarkIcon(this)" title="Estrella">⭐</div>
         <div class="icon-opt" data-icon="🔥" onclick="setMarkIcon(this)" title="Fuego">🔥</div>
@@ -1798,62 +1846,22 @@
         <div class="icon-opt" data-icon="🎲" onclick="setMarkIcon(this)" title="Dado">🎲</div>
         <div class="icon-opt" data-icon="💰" onclick="setMarkIcon(this)" title="Dinero">💰</div>
         <div class="icon-opt" data-icon="🎁" onclick="setMarkIcon(this)" title="Regalo">🎁</div>
-      </div>
-    </div>
-
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
-
-    <!-- FILA: frase debajo del título -->
-    <div>
-      <div class="section-label">Frase debajo del título</div>
-      <input type="text" id="taglineInput" maxlength="80" placeholder="Ej: ¡Que la suerte te acompañe!" oninput="saveTagline()" autocomplete="off">
-    </div>
-
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
-
-    <!-- FILA: avatares junto a los tréboles -->
-    <div>
-      <div class="section-label">Avatares junto a los tréboles</div>
-      <div class="av-slots">
+      </div></div></details>
+    <details class="acc"><summary>Frase debajo del título</summary><div class="acc-body"><input type="text" id="taglineInput" maxlength="80" placeholder="Ej: ¡Que la suerte te acompañe!" oninput="saveTagline()" autocomplete="off"></div></details>
+    <details class="acc"><summary>Avatares junto a los tréboles</summary><div class="acc-body"><div class="av-slots">
         <div class="av-slot">Izquierda<button class="av-box active" id="avSlotL" onclick="avSelect('L')" aria-label="Avatar izquierdo">＋</button><button class="av-x" onclick="avClear('L')">Quitar</button></div>
         <div class="av-slot">Derecha<button class="av-box" id="avSlotR" onclick="avSelect('R')" aria-label="Avatar derecho">＋</button><button class="av-x" onclick="avClear('R')">Quitar</button></div>
       </div>
       <div class="section-label" style="margin-top:6px">Mis avatares favoritos</div>
       <div class="av-favs" id="avFavs"></div>
       <input type="file" id="avFile" accept="image/*" hidden onchange="avAdd(this)">
-      <p class="av-hint">Elegí el lado (izquierda o derecha) y tocá un favorito para ponerlo. Con ＋ agregás una imagen de tu dispositivo.</p>
-    </div>
-
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
-
-    <!-- FILA: mensaje final -->
-    <div>
-      <div class="section-label">Mensaje al finalizar el sorteo</div>
-      <input type="text" id="thanksInput" maxlength="70" placeholder="¡Muchas gracias por participar!" oninput="saveThanks()" autocomplete="off">
-    </div>
-
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
-
-    <!-- FILA 3: estilo de sorteo -->
-    <div>
-      <div class="section-label">Estilo de sorteo</div>
-      <div class="style-list" id="styleList">
+      <p class="av-hint">Elegí el lado (izquierda o derecha) y tocá un favorito para ponerlo. Con ＋ agregás una imagen de tu dispositivo.</p></div></details>
+    <details class="acc"><summary>Mensaje al finalizar el sorteo</summary><div class="acc-body"><input type="text" id="thanksInput" maxlength="70" placeholder="¡Muchas gracias por participar!" oninput="saveThanks()" autocomplete="off"></div></details>
+    <details class="acc"><summary>Estilo de sorteo</summary><div class="acc-body"><div class="style-list" id="styleList">
         <div class="style-opt active" data-style="ball" onclick="setDrawStyle('ball')"><span class="emo">🎱</span> Bola</div>
         <div class="style-opt" data-style="wheel" onclick="setDrawStyle('wheel')"><span class="emo">🎡</span> Rueda de la fortuna</div>
-      </div>
-    </div>
-
-    <!-- SEPARADOR -->
-    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
-
-    <!-- FILA 4: color -->
-    <div>
-      <div class="section-label">Color (bola y rueda)</div>
-      <div class="color-swatches" id="swatches">
+      </div></div></details>
+    <details class="acc"><summary>Color (bola y rueda)</summary><div class="acc-body"><div class="color-swatches" id="swatches">
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#6ab4ff,#1a6fd4,#002b80)" data-color="#1a6fd4" onclick="setBallColor(this)" title="Azul"></div>
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#ff6b6b,#d41a1a,#5a0000)" data-color="#d41a1a" onclick="setBallColor(this)" title="Rojo"></div>
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#6bff7a,#1ad43c,#005a10)" data-color="#1ad43c" onclick="setBallColor(this)" title="Verde"></div>
@@ -1862,9 +1870,7 @@
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#ff9f6b,#d45f1a,#5a2000)" data-color="#d45f1a" onclick="setBallColor(this)" title="Naranja"></div>
         <div class="swatch" style="background:radial-gradient(circle at 35% 35%,#fff,#bbb,#444)" data-color="#888888" onclick="setBallColor(this)" title="Gris"></div>
         <input type="color" class="custom-color" id="customColor" value="#1a6fd4" title="Color personalizado" oninput="setBallColorHex(this.value)">
-      </div>
-    </div>
-
+      </div></div></details>
   </div>
 
   <!-- STAGE: bola + resultados -->
@@ -2398,15 +2404,17 @@
     const el = document.getElementById('preflight');
     if (!el) return;
     const items = pfStatus();
+    stepMarks(items);
     items.forEach(it => { if (it.done) delete pfIgnored[it.key]; });
     const pending = items.filter(it => !it.done && !pfIgnored[it.key]);
     const allDone = items.every(it => it.done);
     el.classList.toggle('ok', allDone);
+    el.classList.toggle('step-off', curStep !== 5);
     if (allDone) {
       el.innerHTML = '<div class="pf-head">✅ Todo listo para sortear</div>';
       return;
     }
-    el.innerHTML = `<div class="pf-head">${pending.length ? 'Antes de sortear' : 'Pasos omitidos'}</div>` + items.map(it => {
+    el.innerHTML = `<div class="pf-head">${pending.length ? 'Antes de sortear' : 'Pasos omitidos'}</div>` + items.filter(it => !it.done).map(it => {
       const cls = it.done ? 'done' : (pfIgnored[it.key] ? 'skip' : 'todo');
       const ic = it.done ? '✅' : (pfIgnored[it.key] ? '➖' : '⬜');
       return `<button type="button" class="pf-item ${cls}" onclick="pfGoto('${it.target}')">
@@ -2415,9 +2423,37 @@
     }).join('');
   }
 
+
+  // ── BARRA DE PASOS (un paso por vez, sin scroll) ──
+  const STEP_PANELS = { 1: ['panelLibrary', 'panelConfig'], 2: ['gridPanel'], 3: ['panelPrizes'], 4: ['panelCustom'], 5: ['stage'], 6: ['panelResults'] };
+  const STEP_OF = { panelConfig: 1, panelLibrary: 1, gridPanel: 2, panelPrizes: 3, panelCustom: 4, stage: 5, panelResults: 6 };
+  let curStep = 1;
+  function setStep(n, noScroll) {
+    curStep = n;
+    Object.keys(STEP_PANELS).forEach(k => STEP_PANELS[k].forEach(id => {
+      const el = id === 'stage' ? document.querySelector('.stage') : document.getElementById(id);
+      if (el) el.classList.toggle('step-off', Number(k) !== n);
+    }));
+    document.querySelectorAll('#stepbar button').forEach(b => b.classList.toggle('active', Number(b.dataset.step) === n));
+    const pf = document.getElementById('preflight');
+    if (pf) pf.classList.toggle('step-off', n !== 5);
+    if (n !== 5) { try { wantBack = false; updateBack(); } catch (e) {} }
+    if (!noScroll) {
+      const y = document.getElementById('stepSentinel').offsetTop;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }
+  function stepMarks(items) {
+    const m = { 1: 'grid', 2: 'names', 3: 'prizes' };
+    Object.keys(m).forEach(k => {
+      const it = items.find(x => x.key === m[k]);
+      const b = document.querySelector(`#stepbar button[data-step="${k}"]`);
+      if (b && it) b.classList.toggle('done', !!it.done);
+    });
+  }
+
   function pfGoto(id) {
-    const t = document.getElementById(id);
-    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (STEP_OF[id]) setStep(STEP_OF[id]);
   }
 
   // devuelve true si se puede sortear; si no, muestra el aviso
@@ -3322,7 +3358,15 @@
   function applyFsZoom() {
     const bw = document.querySelector('.ball-wrap');
     if (!bw) return;
-    if (fsMode !== 'sorteo') { bw.style.zoom = ''; return; }
+    const ws = document.querySelector('.wheel-stage');
+    if (fsMode !== 'sorteo') {
+      // vista normal: que la bola o la rueda se ajusten a la altura disponible
+      const room = window.innerHeight - 520;
+      bw.style.zoom = fsMode ? '' : Math.max(0.55, Math.min(1, room / 290));
+      if (ws) ws.style.width = fsMode ? '' : Math.max(210, Math.min(440, window.innerWidth * 0.9, room + 20)) + 'px';
+      return;
+    }
+    if (ws) ws.style.width = '';
     const land = window.innerWidth > window.innerHeight && window.innerHeight <= 560;
     const z = land
       ? Math.max(0.8, Math.min(2.2, Math.min(window.innerWidth * 0.42 / 270, window.innerHeight * 0.62 / 300)))
@@ -3435,6 +3479,7 @@
 
     // deja ver un momento el resultado y luego va al número
     goTimer = setTimeout(() => {
+      if (fsMode !== 'grid') setStep(2, true);
       chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (fsMode !== 'grid') { wantBack = true; setTimeout(updateBack, 700); }
     }, fsMode === 'grid' ? 150 : 1500);
@@ -3450,8 +3495,7 @@
 
   function backToDraw() {
     wantBack = false; updateBack();
-    const z = drawZoneEl();
-    if (z) z.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setStep(5);
   }
 
   (function () {
@@ -3780,6 +3824,8 @@
   document.getElementById('participantGrid').addEventListener('input', () => { payRefresh(); if (document.getElementById('payPane').style.display === 'block') payRender(true); });
   payRefresh();
   loadGridZoom();
+  setStep(history.length ? 5 : 1, true);
+  applyFsZoom();
 
   if ('serviceWorker' in navigator) {
     // si aparece una versión nueva, recarga sola (una vez) para mostrarla
@@ -3827,7 +3873,7 @@ function openHelp() {
   const st = (n, t) => `<li><span class="step-num">${n}</span><span>${t}</span></li>`;
   const ex = (i, t) => `<li><span class="hx">${i}</span><span>${t}</span></li>`;
   cfAsk({ title: 'Cómo usar Bingo en Vivo', html: `
-    Seguí los pasos de arriba hacia abajo:
+    Usá la barra de arriba: tocá un número (1 a 6) para ir a ese paso. Seguí el orden:
     <ul class="help-list">
       ${st(1, '<b>Configuración:</b> elegí desde qué número hasta cuál, las columnas y cuántos ganadores. Tocá <b>Generar planilla</b>.')}
       ${st(2, '<b>Planilla:</b> escribí el nombre de cada participante en su fila.')}
@@ -3926,7 +3972,7 @@ async function libOpen(id) {
     if (r !== 'ok') return;
   }
   applyBingo(it);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setStep(5);
 }
 
 function applyBingo(it) {
@@ -3993,7 +4039,7 @@ function resetAll() {
   setCurrentName('');
   setPayTab('plan');
   updatePreflight();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setStep(1);
 }
 
 // ── REINICIAR CON RESUMEN ──
