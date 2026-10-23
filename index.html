@@ -78,7 +78,7 @@
   .pf-item.todo .pf-sub { color: var(--accent); }
   .pf-item.done .pf-sub, .pf-item.skip .pf-sub { color: var(--muted); }
   .pf-item.skip { opacity: 0.6; }
-  body.fs-sorteo .preflight, body.fs-grid .preflight, body.fs-history .preflight { display: none; }
+  body.fs-sorteo .preflight, body.fs-grid .preflight, body.fs-history .preflight, body.fs-winners .preflight { display: none; }
 
   .pf-modal {
     display: none; position: fixed; inset: 0; z-index: 3000;
@@ -114,7 +114,7 @@
   }
   .install-btn[hidden] { display: none; }
   .install-btn:active { transform: scale(0.97); }
-  body.fs-sorteo .install-wrap, body.fs-grid .install-wrap, body.fs-history .install-wrap { display: none; }
+  body.fs-sorteo .install-wrap, body.fs-grid .install-wrap, body.fs-history .install-wrap, body.fs-winners .install-wrap { display: none; }
 
   /* ── pasos ordenados, cada sección con borde blanco ── */
   .step-panel { border: 1px solid rgba(245,197,24,.22) !important; }
@@ -133,7 +133,7 @@
   }
   .step-opt { font-family: 'Outfit', sans-serif; font-weight: 400; font-size: 0.75rem; color: var(--muted); letter-spacing: 0; }
   body.fs-sorteo .stage.step-panel { border: 0 !important; border-radius: 0; }
-  body.fs-sorteo .step-head, body.fs-grid .step-num, body.fs-history .step-num, body.fs-sorteo .step-num { display: none; }
+  body.fs-sorteo .step-head, body.fs-grid .step-num, body.fs-history .step-num, body.fs-winners .step-num, body.fs-sorteo .step-num { display: none; }
   body.fs-grid #gridPanel.step-panel { border: 0 !important; border-radius: 0; }
 
   /* mis bingos guardados */
@@ -183,7 +183,7 @@
     padding: 28px 16px calc(96px + env(safe-area-inset-bottom, 0px));
     opacity: 0.8;
   }
-  body.fs-sorteo .app-footer, body.fs-grid .app-footer, body.fs-history .app-footer { display: none; }
+  body.fs-sorteo .app-footer, body.fs-grid .app-footer, body.fs-history .app-footer, body.fs-winners .app-footer { display: none; }
 
   .tagline {
     font-family: 'Playfair Display', Georgia, serif;
@@ -201,7 +201,7 @@
   .tagline-row:not(.has-av):has(.tagline:empty) { display: none; }
   .tag-av { width: 1.35em; height: 1.35em; font-size: var(--tf); border-radius: 24%; object-fit: cover; flex: 0 0 auto; box-shadow: 0 0 12px rgba(245,197,24,.25); }
   .tag-av[hidden] { display: none; }
-  body.fs-sorteo .tagline-row, body.fs-grid .tagline-row, body.fs-history .tagline-row { display: none; }
+  body.fs-sorteo .tagline-row, body.fs-grid .tagline-row, body.fs-history .tagline-row, body.fs-winners .tagline-row { display: none; }
   /* personalizar: avatares */
   .av-slots { display: flex; gap: 14px; margin: 0 0 12px; }
   .av-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: .7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
@@ -217,7 +217,7 @@
   .tagline::before { content: '🍀\00a0'; font-style: normal; }
   .tagline::after  { content: '\00a0🍀'; font-style: normal; }
   .tagline:empty { display: none; }
-  body.fs-sorteo .tagline, body.fs-grid .tagline, body.fs-history .tagline { display: none; }
+  body.fs-sorteo .tagline, body.fs-grid .tagline, body.fs-history .tagline, body.fs-winners .tagline { display: none; }
 
   .subtitle {
     color: var(--muted);
@@ -853,7 +853,7 @@
   @keyframes chipIn { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   body.fs-sorteo .recent-chip { font-size: 1.35rem; }
   /* el botón de sonido no tapa los botones de pantalla completa */
-  body.fs-sorteo .snd-btn, body.fs-grid .snd-btn, body.fs-history .snd-btn {
+  body.fs-sorteo .snd-btn, body.fs-grid .snd-btn, body.fs-history .snd-btn, body.fs-winners .snd-btn {
     left: auto;
     right: calc(12px + env(safe-area-inset-right, 0px));
     top: calc(62px + env(safe-area-inset-top, 0px));
@@ -896,6 +896,8 @@
     85%  { opacity: 1; }
     100% { transform: translate3d(var(--dx, 0px), 105vh, 0) rotate(var(--rot, 720deg)); opacity: 0; }
   }
+  .confetti-piece.streamer { width: 6px; height: 120px; border-radius: 3px; }
+  .confetti-piece.emo { width: auto; height: auto; background: none !important; font-size: 1.5rem; line-height: 1; }
   /* fotos de premios */
   .prize-photo { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; border: 1.5px dashed var(--border); background: rgba(255,255,255,.04); color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
   .prize-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -903,7 +905,7 @@
   .winner-prize { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 6px; animation: fadeUp 0.5s ease; }
   .winner-prize img { max-width: min(78%, 280px); max-height: 220px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 28px rgba(245,197,24,.35); }
   .winner-prize .prize-tag { font-size: .95rem; padding: 4px 14px; white-space: normal; text-align: center; }
-  body.fs-sorteo .winner-prize img { max-height: 30vh; max-width: min(70vw, 420px); }
+  body.fs-sorteo .winner-prize img { max-width: min(70vw, 420px); }
   .podium-img { width: 3.2em; height: 3.2em; border-radius: 12px; object-fit: cover; border: 1.5px solid var(--accent); }
 
   /* responsive */
@@ -1342,7 +1344,7 @@
     padding: 0;
   }
   .help-btn { right: auto; left: calc(10px + env(safe-area-inset-left, 0px)); font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--accent); }
-  body.fs-sorteo .help-btn, body.fs-grid .help-btn, body.fs-history .help-btn { display: none; }
+  body.fs-sorteo .help-btn, body.fs-grid .help-btn, body.fs-history .help-btn, body.fs-winners .help-btn { display: none; }
   .help-list { margin: 10px 0 0; padding: 0; list-style: none; text-align: left; }
   .help-list li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 9px; font-size: .9rem; line-height: 1.35; }
   .help-list .step-num { width: 1.7em; height: 1.7em; font-size: .8rem; margin-top: 1px; }
@@ -1392,7 +1394,7 @@
     z-index: 900;
     overflow-y: auto;
     gap: 22px;
-    padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(130px + env(safe-area-inset-bottom, 0px));
     background: var(--bg) radial-gradient(ellipse 80% 60% at 50% -10%, #1a1a3a 0%, transparent 70%);
   }
   body.fs-sorteo .stage > .stage-tools,
@@ -1401,6 +1403,8 @@
   body.fs-sorteo .history-section { display: none !important; }
 
   body.fs-sorteo .stage > div:nth-of-type(2) { margin-top: auto; }      /* centra vertical si sobra lugar */
+  body.fs-sorteo .stage > * { flex-shrink: 0; }
+  body.fs-sorteo .winner-prize img { max-height: 26vh; }
   body.fs-sorteo .winner-card { margin-bottom: auto; max-width: 820px; padding: 26px 24px; min-height: 120px; }
   body.fs-sorteo .winner-label { font-size: 0.95rem; }
   body.fs-sorteo .winner-name  { font-size: clamp(2.4rem, 10vw, 4.6rem) !important; }
@@ -1417,6 +1421,7 @@
       padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 12px;
     }
     body.fs-sorteo .stage > div:nth-of-type(2) { margin-top: 0; flex: 0 0 auto; }
+    body.fs-sorteo .winner-prize img { max-height: 34vh; }
     body.fs-sorteo .winner-card { margin-bottom: 0; flex: 1 1 0; min-width: 0; max-width: 420px; }
     body.fs-sorteo .winner-name { font-size: clamp(2rem, 6vw, 3.4rem) !important; }
     body.fs-sorteo .wheel-stage { width: min(46vw, 86vh, 560px); }
@@ -1540,6 +1545,31 @@
   }
   .grid-zoom button:active { background: rgba(245,197,24,0.2); }
   .grid-zoom span { min-width: 3.2em; text-align: center; color: var(--text); font-size: 0.85rem; font-family: 'Outfit', sans-serif; }
+
+  /* GANADORES EN PANTALLA COMPLETA */
+  #winnersPanel { display: none; }
+  body.fs-winners { overflow: hidden; }
+  body.fs-winners #winnersPanel {
+    display: block;
+    position: fixed; inset: 0; z-index: 900;
+    max-width: none; border-radius: 0; overflow: auto; border: 0 !important;
+    padding: calc(64px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg) radial-gradient(ellipse 80% 50% at 50% -10%, #1a1a3a 0%, transparent 70%);
+    font-size: calc(var(--gz, 1) * 1rem);
+  }
+  body.fs-winners .grid-zoom { display: flex; }
+  #winnersPanel .panel-title { font-size: 1.4em; justify-content: center; }
+  .wbig-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17em), 1fr)); gap: 1em; max-width: 1100px; margin: 0 auto; }
+  .wbig { background: linear-gradient(135deg, #1a1800, #252000); border: 1px solid rgba(245,197,24,.4); border-radius: 18px; padding: 1em; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .45em; animation: fadeUp .4s ease; }
+  .wbig-medal { font-size: 2.4em; line-height: 1; }
+  .wbig-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 0 24px rgba(245,197,24,.3); }
+  .wbig-name { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 2.1em; color: var(--accent); line-height: 1.1; text-shadow: 0 0 24px rgba(245,197,24,.4); overflow-wrap: anywhere; }
+  .wbig .prize-tag { font-size: 1.05em; padding: .3em .9em; white-space: normal; }
+  .wbig-nums { font-size: .9em; color: var(--muted); }
+  .wbig-empty { text-align: center; color: var(--muted); font-style: italic; padding: 3em 1em; font-size: 1.1em; }
+  .fs-win { display: none; position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); bottom: calc(68px + env(safe-area-inset-bottom, 0px)); z-index: 1000; background: rgba(18,18,30,0.94); border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 11px 18px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 600; box-shadow: 0 8px 28px rgba(0,0,0,0.6); cursor: pointer; }
+  body.fs-sorteo .fs-win { left: auto; right: calc(14px + env(safe-area-inset-right, 0px)); }
+  @media (orientation: landscape) and (max-height: 560px) { .fs-win { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); } }
 
   /* HISTORIAL COMPLETO */
   #historyPanel { display: none; }
@@ -1846,6 +1876,7 @@
       <button class="tool-btn" onclick="openFS('sorteo')">⛶ Pantalla completa</button>
       <button class="tool-btn" onclick="openFS('grid')">📋 Ver planilla sola</button>
       <button class="tool-btn" onclick="openFS('history')">🕘 Ver historial</button>
+      <button class="tool-btn" onclick="openFS('winners')">🏆 Ver ganadores</button>
     </div>
 
     <div style="display:flex;align-items:center;gap:20px;flex-direction:column;">
@@ -1914,6 +1945,11 @@
   </div>
 
   <!-- HISTORIAL COMPLETO (se muestra solo en su vista) -->
+  <div class="panel" id="winnersPanel">
+    <div class="panel-title">🏆 Ganadores</div>
+    <div id="winnersBig"></div>
+  </div>
+
   <div class="panel" id="historyPanel">
     <div class="panel-title">🕘 Historial del sorteo</div>
     <div class="hist-summary" id="histSummary"></div>
@@ -1938,6 +1974,7 @@
   <span id="gridZoomVal">100%</span>
   <button onclick="gridZoom(1)" aria-label="Agrandar">A+</button>
 </div>
+<button class="fs-win" id="fsWin" onclick="openFS('winners')">🏆 Ganadores</button>
 <button class="fs-hist" id="fsHist" onclick="openFS('history')">🕘 Historial</button>
 <button class="fs-swap" id="fsSwap" onclick="swapFS()"></button>
 <button class="back-draw" id="backDraw" onclick="backToDraw()">↑ Volver al sorteo</button>
@@ -2218,6 +2255,23 @@
         tone(1318.5, t, 1.4, 0.34);          // Mi6
         tone(2637,   t, 0.8, 0.12);
         tone(1976,   t, 1.0, 0.10);
+      },
+      // cornetín de fiesta (flauta)
+      horn(delay) {
+        if (!on || !init()) return;
+        const t = ctx.currentTime + (delay || 0);
+        const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain();
+        const lfo = ctx.createOscillator(), lg = ctx.createGain();
+        o.type = 'sawtooth'; o2.type = 'square';
+        o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(760, t + 0.22); o.frequency.setValueAtTime(760, t + 0.5);
+        o2.frequency.setValueAtTime(383, t); o2.frequency.exponentialRampToValueAtTime(765, t + 0.22); o2.frequency.setValueAtTime(765, t + 0.5);
+        lfo.frequency.value = 26; lg.gain.value = 14; lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.13, t + 0.05);
+        g.gain.setValueAtTime(0.13, t + 0.5);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.72);
+        o.connect(g); o2.connect(g); g.connect(master);
+        [o, o2, lfo].forEach(n => { n.start(t); n.stop(t + 0.8); });
       },
       // fila completa / sorteo terminado
       win(big) {
@@ -2529,10 +2583,11 @@
     renderHistory();
 
     Sound.ding();
-    if (rowComplete) { Sound.win(sorteoFinalizado); vibrate(sorteoFinalizado ? [150, 70, 150, 70, 150, 70, 400] : [120, 60, 120, 60, 260]); }
+    if (rowComplete) { Sound.win(sorteoFinalizado); Sound.horn(0.1); if (sorteoFinalizado) { Sound.horn(0.95); Sound.horn(1.8); } vibrate(sorteoFinalizado ? [150, 70, 150, 70, 150, 70, 400] : [120, 60, 120, 60, 260]); }
     else vibrate(45);
     if (rowComplete) launchConfetti(sorteoFinalizado ? 120 : 70);
     if (rowComplete && sorteoFinalizado) showThanks();
+    if (rowComplete && document.body.classList.contains('fs-sorteo')) setTimeout(() => { const c = document.getElementById('winnerCard'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 500);
     saveState();
     isSpinning = false;
   }
@@ -2803,26 +2858,55 @@
     const container = document.getElementById('confettiContainer');
     const colors = ['#f5c518', '#ff4f4f', '#4fc3f7', '#81c784', '#ff8a65', '#ce93d8', '#ffffff', '#ff80ab', '#69f0ae', '#ffd54f'];
     container.innerHTML = '';
-    const total = Math.round(count * 2.6);      // mucha más lluvia de confites
+    const total = Math.round(count * 4);          // lluvia de confites
     const frag = document.createDocumentFragment();
     for (let i = 0; i < total; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-piece';
       const shape = Math.random();
-      const w = 6 + Math.random() * 9;
+      const w = 6 + Math.random() * 10;
       p.style.left = (Math.random() * 104 - 2) + 'vw';
       p.style.background = colors[Math.floor(Math.random() * colors.length)];
       p.style.width  = (shape < 0.35 ? w * 0.45 : w) + 'px';
       p.style.height = (shape < 0.35 ? w * 1.6 : w) + 'px';
       p.style.borderRadius = shape > 0.75 ? '50%' : '2px';
-      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      p.style.setProperty('--dx', (Math.random() * 180 - 90) + 'px');
       p.style.setProperty('--rot', (360 + Math.random() * 900) * (Math.random() > 0.5 ? 1 : -1) + 'deg');
+      p.style.animationDelay    = (Math.random() * 2.2) + 's';
+      p.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      frag.appendChild(p);
+    }
+    // serpentinas
+    const nS = Math.round(count * 0.55);
+    for (let i = 0; i < nS; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-piece streamer';
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.height = (70 + Math.random() * 110) + 'px';
+      p.style.background = `repeating-linear-gradient(180deg, ${c} 0 9px, rgba(255,255,255,.55) 9px 14px)`;
+      p.style.setProperty('--dx', (Math.random() * 220 - 110) + 'px');
+      p.style.setProperty('--rot', (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 360) + 'deg');
       p.style.animationDelay    = (Math.random() * 1.8) + 's';
-      p.style.animationDuration = (2.2 + Math.random() * 1.6) + 's';
+      p.style.animationDuration = (3 + Math.random() * 2) + 's';
+      frag.appendChild(p);
+    }
+    // algunos globos de fiesta
+    const emo = ['🎉', '🎊', '✨', '🎈'];
+    const nE = Math.round(count * 0.14);
+    for (let i = 0; i < nE; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-piece emo';
+      p.textContent = emo[Math.floor(Math.random() * emo.length)];
+      p.style.left = (Math.random() * 96) + 'vw';
+      p.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 360 - 180) + 'deg');
+      p.style.animationDelay    = (Math.random() * 1.6) + 's';
+      p.style.animationDuration = (2.6 + Math.random() * 1.8) + 's';
       frag.appendChild(p);
     }
     container.appendChild(frag);
-    setTimeout(() => { container.innerHTML = ''; }, 6200);
+    setTimeout(() => { container.innerHTML = ''; }, 8200);
   }
 
   // ── GUARDAR / CARGAR ──
@@ -3246,6 +3330,22 @@
     bw.style.zoom = z;
   }
 
+  function renderWinnersPanel() {
+    const box = document.getElementById('winnersBig');
+    if (!completedRows.length) { box.innerHTML = '<div class="wbig-empty">Todavía no hay ganadores</div>'; return; }
+    const medals = ['🥇', '🥈', '🥉'];
+    box.innerHTML = '<div class="wbig-list">' + completedRows.map((w, i) => {
+      const pz = prizes[i], txt = pz ? formatPrize(pz) : '';
+      return `<div class="wbig">
+        <span class="wbig-medal">${medals[i] || (i + 1) + '°'}</span>
+        ${pz && pz.type === 'object' && pz.img ? `<img class="wbig-img" src="${pz.img}" alt="">` : ''}
+        <span class="wbig-name">${esc(w.name)}</span>
+        ${txt ? `<span class="prize-tag ${pz.type === 'money' ? 'money' : 'object'}">${pz.type === 'money' ? '💰' : '🎁'} ${esc(txt)}</span>` : ''}
+        <span class="wbig-nums">Números: ${w.nums.join(', ')}</span>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
   function nativeFs() { return document.fullscreenElement || document.webkitFullscreenElement; }
 
   function openFS(mode) {
@@ -3257,7 +3357,9 @@
     sw.textContent = (mode === 'sorteo') ? '📋 Ver planilla' : '🎱 Volver al sorteo';
     sw.style.display = 'flex';
     document.getElementById('fsHist').style.display = (mode === 'history') ? 'none' : 'block';
+    document.getElementById('fsWin').style.display = (mode === 'winners') ? 'none' : 'block';
     if (mode === 'history') renderHistoryPanel();
+    if (mode === 'winners') renderWinnersPanel();
     applyFsZoom();
     window.scrollTo(0, 0);
     try {
@@ -3268,11 +3370,12 @@
   }
 
   function closeFS(keepNative) {
-    document.body.classList.remove('fs-sorteo', 'fs-grid', 'fs-history');
+    document.body.classList.remove('fs-sorteo', 'fs-grid', 'fs-history', 'fs-winners');
     fsMode = null;
     document.getElementById('fsClose').style.display = 'none';
     document.getElementById('fsSwap').style.display = 'none';
     document.getElementById('fsHist').style.display = 'none';
+    document.getElementById('fsWin').style.display = 'none';
     applyFsZoom();
     if (!keepNative) {
       try {
@@ -3371,7 +3474,7 @@
   // ── TAMAÑO DE LA PLANILLA SOLA ──
   let gridZ = 1;
   function applyGridZoom() {
-    ['gridPanel', 'historyPanel'].forEach(id => {
+    ['gridPanel', 'historyPanel', 'winnersPanel'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.setProperty('--gz', gridZ);
     });
