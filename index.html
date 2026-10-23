@@ -111,7 +111,7 @@
   @keyframes pbIn { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
   .prize-big .pb-who { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: clamp(1.1rem, 5vw, 2rem); color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 2px 12px #000; }
   .prize-big .pb-name { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(2rem, 10vw, 4.5rem); color: var(--accent); text-shadow: 0 0 30px rgba(245,197,24,.6), 0 4px 14px #000; line-height: 1.05; overflow-wrap: anywhere; }
-  .prize-big .pb-amt { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(3.2rem, 21vw, 11rem); line-height: 1; color: #6ddc6d; text-shadow: 0 0 40px rgba(109,220,109,.7), 0 6px 20px #000; animation: pbPulse 1.4s ease-in-out infinite; overflow-wrap: anywhere; }
+  .prize-big .pb-amt { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(2.4rem, 15vw, 8rem); line-height: 1; color: #6ddc6d; text-shadow: 0 0 40px rgba(109,220,109,.7), 0 6px 20px #000; animation: pbPulse 1.4s ease-in-out infinite; overflow-wrap: anywhere; }
   .prize-big .pb-desc { font-family: 'Outfit', sans-serif; font-size: clamp(1rem, 4.5vw, 1.8rem); color: #fff; text-shadow: 0 2px 10px #000; }
   .prize-big .pb-hint { margin-top: .8em; font-family: 'Outfit', sans-serif; font-size: .75rem; color: rgba(255,255,255,.55); letter-spacing: 2px; text-transform: uppercase; }
   @keyframes pbPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
@@ -2099,7 +2099,7 @@
     if (isNaN(cols) || cols < 1 || cols > 6) { alert('Columnas: entre 1 y 6.'); return; }
 
     gridMin = mn; gridMax = mx; gridCols = cols;
-    if (fromUser === true) { pay = { on: false, price: '', paid: {} }; paySave(); clearState(); prizes = []; renderPrizes(); try { saveAll(); } catch (e) {} }
+    if (fromUser === true) { goShown = false; pay = { on: false, price: '', paid: {} }; paySave(); clearState(); prizes = []; renderPrizes(); try { saveAll(); } catch (e) {} }
     displayMin.textContent = mn;
     displayMax.textContent = mx;
     usedNumbers.clear();
@@ -2189,6 +2189,7 @@
     document.getElementById('tabPay').classList.toggle('active', isPay);
     document.getElementById('payPane').style.display = isPay ? 'block' : 'none';
     document.getElementById('participantGrid').style.display = isPay ? 'none' : '';
+    const eb = document.getElementById('emoBar'); if (eb) eb.style.display = isPay ? 'none' : '';
     if (isPay) payRender();
   }
   function payOnChange() { pay.on = document.getElementById('payOn').checked; paySave(); payRefresh(); payRender(); }
@@ -2199,8 +2200,9 @@
     for (let r = 0; r < rowMap.length; r++) {
       const inp = document.getElementById(`ri-${r}`);
       const name = inp ? inp.value.trim() : '';
+      const hasName = name !== '';
       const paid = !!pay.paid[r];
-      if (name || paid) out.push({ r, name: name || `Fila ${r + 1} (sin nombre)`, paid });
+      if (hasName || paid) out.push({ r, name: name || `Fila ${r + 1} (sin nombre)`, paid });
     }
     return out;
   }
@@ -2508,7 +2510,7 @@
     const b = document.querySelector('#stepbar button[data-step="4"]');
     if (b) b.classList.toggle('done', seen);
   }
-  let goTimer2 = null;
+  let goTimer2 = null, goShown = false;
   function showGo() {
     const el = document.getElementById('goBanner'); if (!el) return;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -2954,7 +2956,7 @@
     clearPodium();
     document.querySelectorAll('.num-chip.drawn').forEach(c => c.classList.remove('drawn'));
     document.querySelectorAll('.row-complete').forEach(r => r.classList.remove('row-complete'));
-    prizes = []; renderPrizes();
+    prizes = []; renderPrizes(); goShown = false;
     pay = { on: false, price: '', paid: {} }; paySave(); payRefresh(); payRender();
     renderHistory();
     saveState();
@@ -3488,7 +3490,7 @@
     sw.style.display = 'flex';
     document.getElementById('fsHist').style.display = (mode === 'history') ? 'none' : 'block';
     document.getElementById('fsWin').style.display = (mode === 'winners') ? 'none' : 'block';
-    if (mode === 'sorteo') showGo();
+    if (mode === 'sorteo' && !goShown) { goShown = true; showGo(); }   // solo la primera vez
     if (mode === 'grid') setPayTab('plan');   // la planilla sola siempre muestra números y participantes
     if (mode === 'history') renderHistoryPanel();
     if (mode === 'winners') renderWinnersPanel();
