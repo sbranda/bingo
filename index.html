@@ -103,7 +103,7 @@
   /* cartel A SORTEAR */
   .go-banner { position: fixed; inset: 0; z-index: 1500; display: none; align-items: center; justify-content: center; pointer-events: none; }
   .go-banner.show { display: flex; }
-  .go-banner span { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(1.8rem, 9.5vw, 4.5rem); letter-spacing: 2px; color: #231700; padding: .25em .55em; max-width: 90vw; text-align: center; line-height: 1.1; border-radius: .3em; background: linear-gradient(135deg, #fff2a8 0%, #f5c518 40%, #e0a000 75%, #ffd94a 100%); border: 3px solid #fffbe0; box-shadow: 0 14px 50px rgba(0,0,0,.6), 0 0 60px rgba(245,197,24,.7); animation: goPop 1.5s cubic-bezier(.2,1.4,.4,1) both; text-shadow: 0 2px 0 rgba(255,255,255,.45); }
+  .go-banner span { animation-duration: 5s !important; font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(1.8rem, 9.5vw, 4.5rem); letter-spacing: 2px; color: #231700; padding: .25em .55em; max-width: 90vw; text-align: center; line-height: 1.1; border-radius: .3em; background: linear-gradient(135deg, #fff2a8 0%, #f5c518 40%, #e0a000 75%, #ffd94a 100%); border: 3px solid #fffbe0; box-shadow: 0 14px 50px rgba(0,0,0,.6), 0 0 60px rgba(245,197,24,.7); animation: goPop 1.5s cubic-bezier(.2,1.4,.4,1) both; text-shadow: 0 2px 0 rgba(255,255,255,.45); }
   @keyframes goPop { 0% { opacity: 0; transform: scale(.4) rotate(-6deg); } 18% { opacity: 1; transform: scale(1.08) rotate(-3deg); } 30% { transform: scale(1) rotate(-3deg); } 80% { opacity: 1; transform: scale(1) rotate(-3deg); } 100% { opacity: 0; transform: scale(1.15) rotate(-3deg); } }
   /* premio en dinero, bien grande */
   .prize-big { position: fixed; inset: 0; z-index: 1400; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .3em; padding: 20px; text-align: center; background: radial-gradient(ellipse at center, rgba(5,5,12,.88) 0%, rgba(5,5,12,.62) 75%); cursor: pointer; }
@@ -1412,6 +1412,10 @@
   .help-list .hx { flex: 0 0 1.7em; text-align: center; }
   .help-sub { margin: 12px 0 4px; color: var(--accent); font-weight: 700; font-size: .85rem; letter-spacing: 1px; text-transform: uppercase; }
   /* pagos */
+  .emo-bar { display: flex; gap: 4px; overflow-x: auto; margin: 0 0 8px; padding: 2px 0 6px; -webkit-overflow-scrolling: touch; }
+  .emo-bar button { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.04); font-size: 1.15rem; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+  .emo-bar .emo-lbl { flex: 0 0 auto; align-self: center; padding-left: 3px; font-size: .68rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; padding-right: 4px; }
+  body.fs-grid .emo-bar { display: none; }
   .pay-tabs { display: flex; gap: 8px; margin: 0 0 12px; }
   .pay-tab { flex: 1; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); font-family: 'Outfit', sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .pay-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(245,197,24,.08); }
@@ -1840,6 +1844,7 @@
       <label class="pay-chk"><input type="checkbox" id="payOn" onchange="payOnChange()"> Controlar pagos de los participantes</label>
       <div id="payBody"></div>
     </div>
+    <div class="emo-bar" id="emoBar"></div>
     <div id="participantGrid"><span class="empty-msg">Generá la planilla para cargar participantes</span></div>
   </div>
 
@@ -2155,6 +2160,24 @@
     payRefresh();
   }
 
+  // ── ICONOS EN LOS NOMBRES ──
+  const NAME_EMOJIS = ['🍀','⭐','❤️','🎉','🔥','🏆','🌈','🦄','🎈','😀','😎','🥳','🐶','🐱','⚽','🎸','🌹','🍕'];
+  let lastNameInp = null;
+  (function () {
+    const bar = document.getElementById('emoBar');
+    bar.innerHTML = '<span class="emo-lbl">Iconos</span>' + NAME_EMOJIS.map(e => `<button type="button" onmousedown="event.preventDefault()" onclick="insertNameEmoji('${e}')" aria-label="Insertar ${e}">${e}</button>`).join('');
+    document.addEventListener('focusin', ev => { if (ev.target && ev.target.classList && ev.target.classList.contains('name-inp')) lastNameInp = ev.target; });
+  })();
+  function insertNameEmoji(e) {
+    const inp = lastNameInp && document.body.contains(lastNameInp) ? lastNameInp : document.querySelector('.name-inp');
+    if (!inp) return;
+    const a = inp.selectionStart == null ? inp.value.length : inp.selectionStart, b = inp.selectionEnd == null ? a : inp.selectionEnd;
+    inp.value = inp.value.slice(0, a) + e + inp.value.slice(b);
+    const pos = a + e.length;
+    inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (x) {}
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   // ── PAGOS ──
   let pay = { on: false, price: '', paid: {} };
   try { const _p = JSON.parse(localStorage.getItem('sorteo_pay') || 'null'); if (_p && typeof _p === 'object') pay = { on: !!_p.on, price: _p.price || '', paid: _p.paid || {} }; } catch (e) {}
@@ -2465,7 +2488,7 @@
     curStep = n;
     if (n >= 4) { try { localStorage.setItem('sorteo_step4', '1'); } catch (e) {} }
     stepSeen4();
-    if (n === 5 && prev !== 5 && !quiet && !noScroll) showGo();
+
     if (n === 2 && noScroll) { try { setPayTab('plan'); } catch (e) {} }
     Object.keys(STEP_PANELS).forEach(k => STEP_PANELS[k].forEach(id => {
       const el = id === 'stage' ? document.querySelector('.stage') : document.getElementById(id);
@@ -2489,7 +2512,7 @@
   function showGo() {
     const el = document.getElementById('goBanner'); if (!el) return;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-    clearTimeout(goTimer2); goTimer2 = setTimeout(() => el.classList.remove('show'), 1500);
+    clearTimeout(goTimer2); goTimer2 = setTimeout(() => el.classList.remove('show'), 5000);
   }
   function stepMarks(items) {
     const m = { 1: 'grid', 2: 'names', 3: 'prizes' };
@@ -3465,6 +3488,7 @@
     sw.style.display = 'flex';
     document.getElementById('fsHist').style.display = (mode === 'history') ? 'none' : 'block';
     document.getElementById('fsWin').style.display = (mode === 'winners') ? 'none' : 'block';
+    if (mode === 'sorteo') showGo();
     if (mode === 'grid') setPayTab('plan');   // la planilla sola siempre muestra números y participantes
     if (mode === 'history') renderHistoryPanel();
     if (mode === 'winners') renderWinnersPanel();
