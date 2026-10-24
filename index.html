@@ -1790,10 +1790,6 @@
   <div class="panel step-panel" id="panelLibrary">
     <div class="panel-title">📚 Mis bingos guardados</div>
     <div class="lib-current" id="libCurrent"></div>
-    <div class="lib-save">
-      <input type="text" id="bingoName" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off">
-      <button class="btn-sm" onclick="libSaveCurrent()" id="libSaveBtn">💾 Guardar bingo</button>
-    </div>
     <div class="lib-list" id="libList"></div>
   </div>
 
@@ -4147,25 +4143,6 @@ function renderLibrary() {
       <button class="del" onclick="libDelete('${it.id}')" aria-label="Eliminar">🗑</button>
     </div>`;
   }).join('');
-}
-
-async function libSaveCurrent() {
-  const inp = document.getElementById('bingoName');
-  const name = inp.value.trim();
-  if (!name) { inp.focus(); inp.placeholder = 'Escribí un nombre para guardarlo'; return; }
-  const lib = libLoad();
-  const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
-  if (same) {
-    const r = await cfAsk({ title: 'Ya existe ese nombre', html: `Ya tenés un bingo guardado como <b>${esc(same.name)}</b>. ¿Querés reemplazarlo con lo que tenés ahora?`,
-      buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'ok', label: 'Reemplazar', primary: true }] });
-    if (r !== 'ok') return;
-  }
-  const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
-  const out = same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item);
-  if (!libStore(out)) return;
-  setCurrentName(name);
-  const b = document.getElementById('libSaveBtn'); const o = b.textContent; b.textContent = '✓ Guardado';
-  setTimeout(() => { b.textContent = o; }, 1800);
 }
 
 let autoSavedFlag = false;
