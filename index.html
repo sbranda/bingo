@@ -1841,12 +1841,14 @@
         </div>
       </div>
     </div>
-    <div class="new-bingo-box" style="margin-top:18px;text-align:center">
-      <p style="margin:0 0 10px;font-size:1.05rem;color:#e8e8f0;line-height:1.4">Para empezar un <b>nuevo bingo</b> pulsá este botón: se guarda el actual y queda todo en blanco.</p>
-      <button class="pay-next" style="margin:0;font-size:1.35rem;padding:16px 12px" onclick="newBingo()">🎱 Nuevo bingo ➜</button>
+    <div class="new-bingo-box" style="margin-top:18px">
+      <p style="margin:0 0 10px;font-size:.95rem;color:#e8e8f0;line-height:1.4">Para empezar un <b>nuevo bingo</b> pulsá este botón: se guarda el actual y queda todo en blanco.</p>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+        <button class="btn-sm" style="padding:9px 20px;font-family:'Outfit',sans-serif;font-weight:600;font-size:1.1rem;letter-spacing:1px;border-radius:8px;cursor:pointer;white-space:nowrap;" onclick="newBingo()">🎱 Nuevo bingo</button>
+        <button class="btn-reset btn-resetall" style="padding:9px 20px;font-family:'Outfit',sans-serif;font-weight:600;font-size:1.1rem;letter-spacing:1px;border-radius:8px;cursor:pointer;white-space:nowrap;background:none;border:1px solid rgba(255,90,90,.45);color:#ff8080" onclick="requestResetAll()">🗑 Restablecer todo</button>
+        <button class="btn-reset btn-resetall" style="padding:9px 20px;font-family:'Outfit',sans-serif;font-weight:600;font-size:1.1rem;letter-spacing:1px;border-radius:8px;cursor:pointer;white-space:nowrap;background:none;border:1px solid rgba(255,90,90,.8);color:#ff6b6b" onclick="requestWipeAll()">⚠️ Borrar todo desde cero</button>
+      </div>
     </div>
-    <button class="btn-reset btn-resetall" style="margin:14px 0 0;width:100%;font-size:1.25rem;padding:15px 12px" onclick="requestResetAll()">🗑 Restablecer todo</button>
-    <button class="btn-reset btn-resetall" style="margin:10px 0 0;width:100%;border-color:rgba(255,90,90,.8);color:#ff6b6b;font-weight:700;font-size:1.25rem;padding:15px 12px" onclick="requestWipeAll()">⚠️ Borrar todo desde cero</button>
   </div>
 
   <!-- PLANILLA ABAJO -->
@@ -2009,10 +2011,6 @@
       <button class="btn-reset" onclick="requestReset()">↺ Reiniciar historial</button>
       <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
-    </div>
-    <div class="new-bingo-box" style="margin-top:18px;text-align:center">
-      <p style="margin:0 0 10px;font-size:.9rem;color:#e8e8f0;line-height:1.4">Para realizar un <b>nuevo bingo</b> pulsá este botón: se guarda este bingo y se vuelve al paso 1 con todo en blanco.</p>
-      <button class="pay-next" style="margin:0" onclick="newBingo()">🎱 Nuevo bingo ➜</button>
     </div>
   </div>
 
@@ -2586,7 +2584,7 @@
   const STEP_PANELS = { 1: ['panelLibrary', 'panelConfig'], 2: ['gridPanel'], 3: ['panelPrizes'], 4: ['panelCustom'], 5: ['stage'], 6: ['panelResults'] };
   const STEP_OF = { panelConfig: 1, panelLibrary: 1, gridPanel: 2, panelPrizes: 3, panelCustom: 4, stage: 5, panelResults: 6 };
   let curStep = 1;
-  let step5done = false, fsInviteShown = false;
+  let step5done = false, step6done = false, fsInviteShown = false;
   function fsInviteClose() { document.getElementById('fsInvite').classList.remove('show'); }
   function fsInviteGo() { fsInviteClose(); openFS('sorteo'); }
   function goResults() { try { if (fsMode) closeFS(); } catch (e) {} setStep(6); }
@@ -2599,7 +2597,9 @@
     if (n !== 5) { const fi = document.getElementById('fsInvite'); if (fi) fi.classList.remove('show'); }
     if (n !== 1) { const sv = document.getElementById('savedInvite'); if (sv) sv.classList.remove('show'); }
     if (n === 6) step5done = true;
+    if (prev === 6 && n !== 6) step6done = true;
     const b5 = document.querySelector('#stepbar button[data-step="5"]'); if (b5) b5.classList.toggle('done', step5done);
+    const b6 = document.querySelector('#stepbar button[data-step="6"]'); if (b6) b6.classList.toggle('done', step6done);
     if (n === 5 && history.length === 0 && !fsInviteShown && !fsMode) { fsInviteShown = true; setTimeout(() => { if (curStep === 5 && !fsMode && pfStatus().every(x => x.done)) document.getElementById('fsInvite').classList.add('show'); }, 600); }
     if (n >= 4) { try { localStorage.setItem('sorteo_step4', '1'); } catch (e) {} }
     stepSeen4();
@@ -3066,8 +3066,8 @@
     clearPodium();
     document.querySelectorAll('.num-chip.drawn').forEach(c => c.classList.remove('drawn'));
     document.querySelectorAll('.row-complete').forEach(r => r.classList.remove('row-complete'));
-    prizes = []; syncPrizesFromWinners(); goShown = false; step5done = false; fsInviteShown = false;
-    { const b5 = document.querySelector('#stepbar button[data-step="5"]'); if (b5) b5.classList.remove('done'); }
+    prizes = []; syncPrizesFromWinners(); goShown = false; step5done = false; step6done = false; fsInviteShown = false;
+    { const b5 = document.querySelector('#stepbar button[data-step="5"]'); if (b5) b5.classList.remove('done'); const b6 = document.querySelector('#stepbar button[data-step="6"]'); if (b6) b6.classList.remove('done'); }
     pay = { on: false, price: '', paid: {} }; paySave(); payRefresh(); payRender();
     renderHistory();
     saveState();
@@ -4273,7 +4273,7 @@ async function libOpen(id) {
 }
 
 function applyBingo(it) {
-  autoSavedFlag = false; try { step5done = false; } catch (e) {}
+  autoSavedFlag = false; try { step5done = false; step6done = false; } catch (e) {}
   const d = it.data || {};
   if (d.minVal)       document.getElementById('minVal').value = d.minVal;
   if (d.maxVal)       document.getElementById('maxVal').value = d.maxVal;
