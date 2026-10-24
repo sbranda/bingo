@@ -1846,6 +1846,7 @@
       <button class="pay-next" style="margin:0" onclick="newBingo()">🎱 Nuevo bingo ➜</button>
     </div>
     <button class="btn-reset btn-resetall" style="margin:14px 0 0;width:100%" onclick="requestResetAll()">🗑 Restablecer todo</button>
+    <button class="btn-reset btn-resetall" style="margin:8px 0 0;width:100%;border-color:rgba(255,90,90,.8);color:#ff6b6b;font-weight:700" onclick="requestWipeAll()">⚠️ Borrar todo desde cero</button>
   </div>
 
   <!-- PLANILLA ABAJO -->
@@ -4344,6 +4345,25 @@ function resetAll() {
   try { localStorage.removeItem('sorteo_step4'); } catch (e) {}
   updatePreflight();
   setStep(1);
+}
+
+// ── BORRAR TODO DESDE CERO (incluye bingos guardados) ──
+async function requestWipeAll() {
+  if (isSpinning) return;
+  const n = libLoad().length;
+  const r = await cfAsk({ title: '⚠️ ¿Borrar todo desde cero?', html: `Se borra <b>absolutamente todo</b> y la app queda como recién instalada:
+    <ul class="cf-list">
+      <li><b>${n}</b> bingo${n === 1 ? '' : 's'} guardado${n === 1 ? '' : 's'}</li>
+      <li>El bingo actual: planilla, nombres, premios, pagos y sorteados</li>
+      <li>La personalización y el sonido</li>
+    </ul>
+    <div class="cf-keep"><b>Esto no se puede deshacer.</b></div>`,
+    buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'ok', label: 'Sí, borrar todo', danger: true }] });
+  if (r !== 'ok') return;
+  try {
+    Object.keys(localStorage).filter(k => k.indexOf('sorteo_') === 0).forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  location.reload();
 }
 
 // ── REINICIAR CON RESUMEN ──
