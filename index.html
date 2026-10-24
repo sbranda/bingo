@@ -4155,10 +4155,17 @@ function autoToast(msg) {
   clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 3500);
 }
 // Guarda solo (sin preguntar) al llegar a Resultados con números sorteados
-function autoSaveBingo() {
-  if (!history.length) return;
+function dateName(lib) {
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  const base = 'Bingo ' + z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+  let name = base, k = 2;
+  while (lib.some(x => x.name.toLowerCase() === name.toLowerCase())) name = base + ' (' + (k++) + ')';
+  return name;
+}
+function autoSaveBingo(force, quiet) {
+  if (!history.length && !force) return;
   let name = getCurrentName();
-  if (!name) { const d = new Date(), z = n => String(n).padStart(2, '0'); name = 'Bingo ' + z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+  if (!name) name = dateName(libLoad());
   const lib = libLoad();
   const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
   const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
@@ -4166,21 +4173,33 @@ function autoSaveBingo() {
   if (!libStore(out)) return;
   setCurrentName(name);
   autoSavedFlag = true;
-  autoToast('✓ Bingo guardado: ' + name);
+  if (!quiet) autoToast('✓ Bingo guardado: ' + name);
 }
 // Botón "Nuevo bingo" del paso 6: guarda (mismo nombre o fecha y hora), restablece todo y va al paso 1
 function newBingo() {
   if (isSpinning) return;
+  const typed = Object.values(collectNames()).some(v => v && v.trim());
   let nm = '';
-  if (history.length) { autoSaveBingo(); nm = getCurrentName(); }
+  const cur = getCurrentName();
+  if (!history.length && !typed && cur && libLoad().some(x => x.name === cur)) {   // ya es un bingo nuevo y vacío, ya guardado
+    resetAll(); setCurrentName(cur);
+    document.getElementById('savedTitle').textContent = '✓ Bingo nuevo';
+    document.getElementById('savedText').innerHTML = 'Este bingo ya está en blanco y guardado como <b>«' + esc(cur) + '»</b>.';
+    document.getElementById('savedInvite').classList.add('show');
+    return;
+  }
+  if (history.length || typed) { autoSaveBingo(true, true); nm = getCurrentName(); }
   autoSavedFlag = false;
   resetAll();
+  // el bingo nuevo también se guarda enseguida, con fecha y hora
+  const lib = libLoad();
+  const newName = dateName(lib);
+  const item = { id: 'b' + Date.now().toString(36), name: newName, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  if (libStore(lib.concat(item))) setCurrentName(newName);
   const sv = document.getElementById('savedInvite');
-  if (nm) {
-    document.getElementById('savedTitle').textContent = '✓ Bingo guardado';
-    document.getElementById('savedText').innerHTML = 'Se guardó con el nombre <b>«' + esc(nm) + '»</b>. Lo encontrás en «Mis bingos guardados». Ya podés armar uno nuevo desde cero.';
-    sv.classList.add('show');
-  }
+  document.getElementById('savedTitle').textContent = '✓ Bingo guardado';
+  document.getElementById('savedText').innerHTML = (nm ? 'El anterior se guardó como <b>«' + esc(nm) + '»</b>. ' : '') + 'El bingo nuevo ya se guardó como <b>«' + esc(newName) + '»</b>. Los encontrás en «Mis bingos guardados».';
+  sv.classList.add('show');
 }
 
 async function libOpen(id) {
