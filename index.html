@@ -1140,24 +1140,24 @@
 
   .prize-type:focus { border-color: var(--accent); }
 
-  .prize-amount {
+  input.prize-amount[type="number"] {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--accent);
     font-family: 'Playfair Display', serif;
     font-weight: 700;
-    font-size: 0.9rem;
-    padding: 7px 10px;
+    font-size: 1.5rem;
+    padding: 5px 10px;
     outline: none;
-    width: 100px;
-    max-width: 40%;
+    width: 150px;
+    max-width: 55%;
     flex-shrink: 1;
     min-width: 0;
     transition: border-color 0.2s;
   }
 
-  .prize-amount:focus { border-color: var(--accent); }
+  input.prize-amount[type="number"]:focus { border-color: var(--accent); }
 
   .prize-desc {
     background: var(--bg);
