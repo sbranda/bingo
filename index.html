@@ -1114,13 +1114,13 @@
   }
   .prize-row .btn-del { margin-left: auto; }
 
-  .prize-note { margin: 4px 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
+  .prize-note { margin: 8px 0 0; font-size: 1rem; color: var(--muted); line-height: 1.4; }
   .prize-pos {
     font-family: 'Playfair Display', serif;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.7rem;
     color: var(--accent);
-    min-width: 24px;
+    min-width: 34px;
     text-align: center;
   }
 
@@ -1130,8 +1130,8 @@
     border-radius: 8px;
     color: var(--text);
     font-family: 'Outfit', sans-serif;
-    font-size: 0.82rem;
-    padding: 7px 8px;
+    font-size: 1.1rem;
+    padding: 9px 8px;
     outline: none;
     cursor: pointer;
     transition: border-color 0.2s;
@@ -1159,21 +1159,21 @@
 
   input.prize-amount[type="number"]:focus { border-color: var(--accent); }
 
-  .prize-desc {
+  input.prize-desc[type="text"] {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
     font-family: 'Outfit', sans-serif;
-    font-size: 0.85rem;
-    padding: 7px 10px;
+    font-size: 1.2rem;
+    padding: 10px 12px;
     outline: none;
     flex: 1 1 130px;
     min-width: 0;
     transition: border-color 0.2s;
   }
 
-  .prize-desc:focus { border-color: var(--accent); }
+  input.prize-desc[type="text"]:focus { border-color: var(--accent); }
 
   .prize-tag {
     display: inline-flex;
