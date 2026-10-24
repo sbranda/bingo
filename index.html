@@ -2589,6 +2589,7 @@
   function fsInviteGo() { fsInviteClose(); openFS('sorteo'); }
   function goResults() { try { if (fsMode) closeFS(); } catch (e) {} setStep(6); }
   function setStep(n, noScroll, quiet) {
+    if (typeof nameLocked !== 'undefined' && nameLocked && n !== 1) return;
     const prev = curStep;
     curStep = n;
     if (n !== 3) { const pi = document.getElementById('prizeInvite'); if (pi) pi.classList.remove('show'); }
@@ -4203,7 +4204,22 @@ function newBingo() {
   resetAll();
   showNameLock(nm ? 'El bingo anterior se guardó como <b>«' + esc(nm) + '»</b>.' : '');
 }
+let nameLocked = false;
+function nlSetInert(on) {
+  [...document.body.children].forEach(el => { if (el.id === 'nameLock' || el.tagName === 'SCRIPT') return; if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); });
+  document.documentElement.style.overflow = on ? 'hidden' : '';
+  document.body.style.overflow = on ? 'hidden' : '';
+}
+document.addEventListener('focusout', e => {
+  if (!nameLocked) return;
+  const to = e.relatedTarget;
+  if (to && to.id === 'nlBtn') return;
+  setTimeout(() => { if (nameLocked) { const i = document.getElementById('nlInput'); if (i) i.focus(); } }, 0);
+}, true);
+['touchmove', 'wheel'].forEach(ev => document.addEventListener(ev, e => { if (nameLocked && !e.target.closest('#nameLock')) e.preventDefault(); }, { passive: false, capture: true }));
+document.addEventListener('keydown', e => { if (nameLocked && (e.key === 'Escape' || (e.key === 'Tab' && document.activeElement && document.activeElement.id === 'nlInput' && false))) e.preventDefault(); }, true);
 function showNameLock(info) {
+  nameLocked = true; nlSetInert(true);
   try { localStorage.setItem('sorteo_namelock', '1'); } catch (e) {}
   document.getElementById('nlInfo').innerHTML = info || 'Ponele un nombre al bingo nuevo.';
   const inp = document.getElementById('nlInput'); inp.value = '';
@@ -4226,6 +4242,7 @@ function nameLockSave() {
   if (!libStore(lib.concat(item))) { document.getElementById('nlErr').textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
   setCurrentName(name);
   try { localStorage.removeItem('sorteo_namelock'); } catch (e) {}
+  nameLocked = false; nlSetInert(false);
   document.getElementById('nameLock').classList.remove('show');
   autoToast('✓ Bingo guardado: ' + name);
 }
