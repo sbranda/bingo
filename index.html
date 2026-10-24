@@ -4192,13 +4192,13 @@ document.addEventListener('focusout', e => {
 }, true);
 ['touchmove', 'wheel'].forEach(ev => document.addEventListener(ev, e => { if (nameLocked && !e.target.closest('#nameLock')) e.preventDefault(); }, { passive: false, capture: true }));
 document.addEventListener('keydown', e => { if (nameLocked && (e.key === 'Escape' || (e.key === 'Tab' && document.activeElement && document.activeElement.id === 'nlInput' && false))) e.preventDefault(); }, true);
-function showNameLock(info) {
+function showNameLock(info, prefill) {
   nameLocked = true; nlSetInert(true);
   try { localStorage.setItem('sorteo_namelock', '1'); } catch (e) {}
   document.getElementById('nlInfo').innerHTML = info || 'Ponele un nombre al bingo nuevo.';
-  const inp = document.getElementById('nlInput'); inp.value = '';
+  const inp = document.getElementById('nlInput'); inp.value = prefill || '';
   document.getElementById('nlErr').textContent = '';
-  document.getElementById('nlBtn').disabled = true;
+  document.getElementById('nlBtn').disabled = !(prefill || '').trim();
   document.getElementById('nameLock').classList.add('show');
   setTimeout(() => { try { inp.focus(); } catch (e) {} }, 150);
 }
@@ -4211,9 +4211,11 @@ function nameLockSave() {
   const inp = document.getElementById('nlInput'), name = inp.value.trim();
   if (!name) return;
   const lib = libLoad();
-  if (lib.some(x => x.name.toLowerCase() === name.toLowerCase())) { document.getElementById('nlErr').textContent = 'Ya existe un bingo con ese nombre. Elegí otro.'; inp.focus(); return; }
-  const item = { id: 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
-  if (!libStore(lib.concat(item))) { document.getElementById('nlErr').textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
+  const cur = getCurrentName();
+  const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
+  if (same && !(cur && cur.toLowerCase() === name.toLowerCase())) { document.getElementById('nlErr').textContent = 'Ya existe un bingo con ese nombre. Elegí otro.'; inp.focus(); return; }
+  const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  if (!libStore(same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item))) { document.getElementById('nlErr').textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
   setCurrentName(name);
   try { localStorage.removeItem('sorteo_namelock'); } catch (e) {}
   nameLocked = false; nlSetInert(false);
@@ -4221,7 +4223,10 @@ function nameLockSave() {
   autoToast('✓ Bingo guardado: ' + name);
 }
 // si se recargó la página con el nombre pendiente, vuelve a pedirlo
-setTimeout(() => { try { if (localStorage.getItem('sorteo_namelock') === '1') showNameLock('Falta ponerle nombre al bingo nuevo.'); } catch (e) {} }, 400);
+setTimeout(() => {
+  const cur = getCurrentName();
+  showNameLock(cur ? 'Seguís con el bingo <b>«' + esc(cur) + '»</b>. Dejalo con ese nombre o cambialo para empezar.' : 'Ponele un nombre a tu bingo para empezar.', cur);
+}, 400);
 
 async function libOpen(id) {
   const it = libLoad().find(x => x.id === id); if (!it) return;
