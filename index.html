@@ -1434,6 +1434,8 @@
   .pay-price { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
   .pay-price span { font-size: .8rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
   .pay-price input { width: 130px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; padding: 8px 10px; }
+  .pay-arrow { font-size: 1.6rem; line-height: 1; color: var(--accent); animation: payBlink 1s ease-in-out infinite; text-shadow: 0 0 12px rgba(245,197,24,.7); }
+  @keyframes payBlink { 0%, 100% { opacity: 1; transform: translateX(0); } 50% { opacity: .15; transform: translateX(-6px); } }
   .pay-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
   .pay-box { border: 1px solid var(--border); border-radius: 10px; padding: 9px 6px; text-align: center; background: rgba(255,255,255,.03); }
   .pay-box small { display: block; font-size: .64rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
@@ -2262,7 +2264,7 @@
     const keep = keepFocus && document.activeElement && document.activeElement.id === 'payPrice';
     const prevVal = keep ? document.activeElement.value : null;
     body.innerHTML = `
-      <div class="pay-price"><span>Valor por fila</span><input id="payPrice" type="text" inputmode="decimal" placeholder="0" value="${esc(pay.price)}" oninput="payPriceChange(this.value)"></div>
+      <div class="pay-price"><span>Valor por fila</span><input id="payPrice" type="text" inputmode="decimal" placeholder="0" value="${esc(pay.price)}" oninput="payPriceChange(this.value)">${price > 0 ? '' : '<span class="pay-arrow" aria-hidden="true">⬅</span>'}</div>
       <div class="pay-sum">
         <div class="pay-box ok"><small>Cobrado</small><b>${payMoney(paidRows.length * price)}</b><i>${paidRows.length} pagaron</i></div>
         <div class="pay-box bad"><small>Falta cobrar</small><b>${payMoney(unpaidRows.length * price)}</b><i>${unpaidRows.length} sin pagar</i></div>
