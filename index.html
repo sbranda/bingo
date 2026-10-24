@@ -2114,12 +2114,22 @@
   minInput.addEventListener('input', () => { displayMin.textContent = minInput.value || '?'; });
   maxInput.addEventListener('input', () => { displayMax.textContent = maxInput.value || '?'; });
 
+  // ── SIN NEGATIVOS: bloquea el "-" y limpia lo pegado ──
+  function isPosField(el) { return el && el.tagName === 'INPUT' && (['minVal','maxVal','colCount','winnersCount'].includes(el.id) || el.classList.contains('prize-amount')); }
+  document.addEventListener('keydown', e => { if (isPosField(e.target) && (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E')) e.preventDefault(); }, true);
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (isPosField(el)) { const v = parseFloat(el.value); if (!isNaN(v) && v < 0) el.value = String(Math.abs(v)); }
+  }, true);
+
   // ── BUILD GRID ──
   function buildGrid(fromUser) {
     const mn   = parseInt(minInput.value);
     const mx   = parseInt(maxInput.value);
     const cols = parseInt(document.getElementById('colCount').value);
     if (isNaN(mn) || isNaN(mx) || mn > mx) { alert('Rango inválido.'); return; }
+    if (mn < 1 || mx < 1) { alert('Los números deben ser 1 o más (sin negativos ni cero).'); return; }
+    { const wc = document.getElementById('winnersCount'); if (!(parseInt(wc.value) >= 1)) wc.value = 1; }
     if (isNaN(cols) || cols < 1 || cols > 6) { alert('Columnas: entre 1 y 6.'); return; }
 
     gridMin = mn; gridMax = mx; gridCols = cols;
@@ -2260,7 +2270,10 @@
     if (isPay) payRender();
   }
   function payOnChange() { pay.on = document.getElementById('payOn').checked; paySave(); payRefresh(); payRender(); }
-  function payPriceChange(v) { pay.price = v; paySave(); payRefresh(); payRender(true); }
+  function payPriceChange(v) {
+    const clean = String(v).replace(/[^0-9.,]/g, '');
+    if (clean !== v) { const el = document.getElementById('payPrice'); if (el) el.value = clean; }
+    v = clean; pay.price = v; paySave(); payRefresh(); payRender(true); }
   function payToggleRow(r) { if (pay.paid[r]) delete pay.paid[r]; else pay.paid[r] = true; paySave(); payRefresh(); payRender(true); }
   function payRows() {
     const out = [];
