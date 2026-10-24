@@ -1794,7 +1794,6 @@
         <input type="number" id="winnersCount" value="1" min="1">
       </div>
       <button class="btn-sm" style="padding:9px 20px;" onclick="buildGrid(true); if (rowMap.length) setStep(2)">Generar planilla</button>
-      <button class="btn-sm" style="padding:9px 20px;background:#1e3a5f;color:#4fc3f7;border:1px solid #4fc3f7;" onclick="saveAll()" id="btnSave">💾 Guardar</button>
       <div class="toggle-row" style="margin-bottom:0;flex:1;min-width:180px;">
         <span class="toggle-label">Permitir repeticiones</span>
         <label class="toggle">
@@ -2158,6 +2157,7 @@
     html += '</tbody></table>';
     document.getElementById('participantGrid').innerHTML = html;
     payRefresh();
+    saveAllSoon();
   }
 
   // ── ICONOS EN LOS NOMBRES ──
@@ -3057,22 +3057,14 @@
 
     try {
       localStorage.setItem('sorteo_data', JSON.stringify(data));
-      const btn = document.getElementById('btnSave');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '✓ Guardado';
-      btn.style.background = '#0a2a0a';
-      btn.style.color = '#6ddc6d';
-      btn.style.borderColor = '#6ddc6d';
-      setTimeout(() => {
-        btn.innerHTML = orig;
-        btn.style.background = '#1e3a5f';
-        btn.style.color = '#4fc3f7';
-        btn.style.borderColor = '#4fc3f7';
-      }, 2000);
     } catch(e) {
-      alert('No se pudo guardar. Tu navegador puede tener el almacenamiento bloqueado.');
+      if (!window._saveWarned) { window._saveWarned = true; alert('No se pudo guardar. Tu navegador puede tener el almacenamiento bloqueado o lleno.'); }
     }
   }
+  // guardado automático de la configuración, premios y participantes
+  let _saveT = null;
+  function saveAllSoon() { clearTimeout(_saveT); _saveT = setTimeout(() => { try { saveAll(); } catch (e) {} }, 500); }
+  ['input', 'change', 'click'].forEach(ev => document.addEventListener(ev, saveAllSoon, true));
 
   function loadSaved() {
     try {
