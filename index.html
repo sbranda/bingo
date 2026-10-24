@@ -109,6 +109,16 @@
   .pay-invite button { flex: 1; padding: 11px 10px; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: .92rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: #fff; }
   .pay-invite button.pi-go { background: var(--accent); color: #111; border-color: var(--accent); }
   body.fs-sorteo .pay-invite, body.fs-grid .pay-invite, body.fs-history .pay-invite, body.fs-winners .pay-invite { display: none !important; }
+  #nameLock { position: fixed; inset: 0; z-index: 6000; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(5,5,10,.88); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  #nameLock.show { display: flex; }
+  #nameLock .nl-box { width: 100%; max-width: 440px; background: var(--surface); border: 3px solid var(--accent); border-radius: 18px; padding: 20px 18px; font-family: 'Outfit', sans-serif; color: #fff; text-align: center; animation: nlBlink 1s ease-in-out infinite; }
+  @keyframes nlBlink { 0%,100% { border-color: var(--accent); box-shadow: 0 0 34px rgba(245,197,24,.75); } 50% { border-color: rgba(245,197,24,.15); box-shadow: 0 0 6px rgba(245,197,24,.1); } }
+  #nameLock h3 { margin: 0 0 6px; font-family: 'Playfair Display', serif; color: var(--accent); font-size: 1.25rem; }
+  #nameLock p { margin: 0 0 12px; font-size: .92rem; line-height: 1.4; color: #e8e8f0; }
+  #nameLock input { width: 100%; box-sizing: border-box; font-size: 1.2rem; padding: 12px; text-align: center; }
+  #nameLock .nl-err { min-height: 1.2em; margin: 6px 0 0; font-size: .85rem; color: #ff8080; }
+  #nameLock button { margin-top: 10px; width: 100%; padding: 13px; border-radius: 12px; border: 0; background: var(--accent); color: #111; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.05rem; cursor: pointer; }
+  #nameLock button:disabled { opacity: .35; cursor: not-allowed; }
   #endBtn { display: none; width: 100%; margin: 14px 0 0; }
   #endBtn.show { display: block; }
   /* cartel A SORTEAR */
@@ -2093,6 +2103,14 @@
 <div class="pay-invite" id="prizeInvite" role="dialog" aria-live="polite"><b>✅ ¡Premios completos!</b><p>Si querés, podés personalizar el sorteo (ícono, frase, avatares, estilo y color). Es opcional.</p><div class="pi-row"><button onclick="prizeInviteClose()">Dejarlo para después</button><button class="pi-go" onclick="prizeInviteGo()">🎨 Ir al paso 4</button></div></div>
 <div class="pay-invite" id="fsInvite" role="dialog" aria-live="polite"><b>⛶ ¿Sorteás frente a un grupo?</b><p>Podés ampliar el sorteo a pantalla completa para que todos vean la bola y los números.</p><div class="pi-row"><button onclick="fsInviteClose()">Ahora no</button><button class="pi-go" onclick="fsInviteGo()">⛶ Pantalla completa</button></div></div>
 <div class="pay-invite" id="savedInvite" role="dialog" aria-live="polite"><b id="savedTitle">✓ Bingo guardado</b><p id="savedText"></p><div class="pi-row"><button class="pi-go" onclick="document.getElementById('savedInvite').classList.remove('show')">Entendido</button></div></div>
+<div id="nameLock" role="dialog" aria-modal="true"><div class="nl-box">
+  <h3>🎱 Nuevo bingo</h3>
+  <p id="nlInfo"></p>
+  <p><b>Para continuar tenés que guardarlo con un nombre.</b></p>
+  <input type="text" id="nlInput" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off" oninput="nameLockCheck()" onkeydown="if(event.key==='Enter')nameLockSave()">
+  <div class="nl-err" id="nlErr"></div>
+  <button id="nlBtn" onclick="nameLockSave()" disabled>💾 Guardar y empezar</button>
+</div></div>
 <div class="go-banner" id="goBanner"><span>🎱 ¡A SORTEAR!</span></div>
 <div class="prize-big" id="prizeBig" onclick="hidePrizeBig()"></div>
 <!-- confetti container -->
@@ -4175,32 +4193,44 @@ function autoSaveBingo(force, quiet) {
   autoSavedFlag = true;
   if (!quiet) autoToast('✓ Bingo guardado: ' + name);
 }
-// Botón "Nuevo bingo" del paso 6: guarda (mismo nombre o fecha y hora), restablece todo y va al paso 1
+// Botón "Nuevo bingo" del paso 6: guarda el actual, restablece todo y obliga a nombrar el nuevo
 function newBingo() {
   if (isSpinning) return;
   const typed = Object.values(collectNames()).some(v => v && v.trim());
   let nm = '';
-  const cur = getCurrentName();
-  if (!history.length && !typed && cur && libLoad().some(x => x.name === cur)) {   // ya es un bingo nuevo y vacío, ya guardado
-    resetAll(); setCurrentName(cur);
-    document.getElementById('savedTitle').textContent = '✓ Bingo nuevo';
-    document.getElementById('savedText').innerHTML = 'Este bingo ya está en blanco y guardado como <b>«' + esc(cur) + '»</b>.';
-    document.getElementById('savedInvite').classList.add('show');
-    return;
-  }
   if (history.length || typed) { autoSaveBingo(true, true); nm = getCurrentName(); }
   autoSavedFlag = false;
   resetAll();
-  // el bingo nuevo también se guarda enseguida, con fecha y hora
-  const lib = libLoad();
-  const newName = dateName(lib);
-  const item = { id: 'b' + Date.now().toString(36), name: newName, savedAt: Date.now(), data: collectConfig(), state: collectState() };
-  if (libStore(lib.concat(item))) setCurrentName(newName);
-  const sv = document.getElementById('savedInvite');
-  document.getElementById('savedTitle').textContent = '✓ Bingo guardado';
-  document.getElementById('savedText').innerHTML = (nm ? 'El anterior se guardó como <b>«' + esc(nm) + '»</b>. ' : '') + 'El bingo nuevo ya se guardó como <b>«' + esc(newName) + '»</b>. Los encontrás en «Mis bingos guardados».';
-  sv.classList.add('show');
+  showNameLock(nm ? 'El bingo anterior se guardó como <b>«' + esc(nm) + '»</b>.' : '');
 }
+function showNameLock(info) {
+  try { localStorage.setItem('sorteo_namelock', '1'); } catch (e) {}
+  document.getElementById('nlInfo').innerHTML = info || 'Ponele un nombre al bingo nuevo.';
+  const inp = document.getElementById('nlInput'); inp.value = '';
+  document.getElementById('nlErr').textContent = '';
+  document.getElementById('nlBtn').disabled = true;
+  document.getElementById('nameLock').classList.add('show');
+  setTimeout(() => { try { inp.focus(); } catch (e) {} }, 150);
+}
+function nameLockCheck() {
+  const v = document.getElementById('nlInput').value.trim();
+  document.getElementById('nlBtn').disabled = !v;
+  document.getElementById('nlErr').textContent = '';
+}
+function nameLockSave() {
+  const inp = document.getElementById('nlInput'), name = inp.value.trim();
+  if (!name) return;
+  const lib = libLoad();
+  if (lib.some(x => x.name.toLowerCase() === name.toLowerCase())) { document.getElementById('nlErr').textContent = 'Ya existe un bingo con ese nombre. Elegí otro.'; inp.focus(); return; }
+  const item = { id: 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  if (!libStore(lib.concat(item))) { document.getElementById('nlErr').textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
+  setCurrentName(name);
+  try { localStorage.removeItem('sorteo_namelock'); } catch (e) {}
+  document.getElementById('nameLock').classList.remove('show');
+  autoToast('✓ Bingo guardado: ' + name);
+}
+// si se recargó la página con el nombre pendiente, vuelve a pedirlo
+setTimeout(() => { try { if (localStorage.getItem('sorteo_namelock') === '1') showNameLock('Falta ponerle nombre al bingo nuevo.'); } catch (e) {} }, 400);
 
 async function libOpen(id) {
   const it = libLoad().find(x => x.id === id); if (!it) return;
