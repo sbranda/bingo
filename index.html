@@ -3909,6 +3909,8 @@
     document.getElementById('thanksText').textContent = thanksMsg();
     b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
     document.getElementById('endBtn').classList.add('show');
+    step6done = true;   // sorteo terminado: el último paso queda tildado
+    const b6 = document.querySelector('#stepbar button[data-step="6"]'); if (b6) b6.classList.add('done');
   }
   function hideThanks() { document.getElementById('thanksBanner').classList.remove('show'); const e = document.getElementById('endBtn'); if (e) e.classList.remove('show'); }
   function saveThanks() {
