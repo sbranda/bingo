@@ -1995,7 +1995,6 @@
       <button class="btn-reset" onclick="requestReset()">↺ Reiniciar historial</button>
       <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
-      <button class="btn-reset btn-resetall" onclick="requestResetAll()" style="margin-left:8px;">🗑 Restablecer todo</button>
     </div>
   </div>
 
@@ -2562,6 +2561,8 @@
     const pf = document.getElementById('preflight');
     if (pf) pf.classList.toggle('step-off', n !== 5);
     if (n !== 5) { try { wantBack = false; updateBack(); } catch (e) {} }
+    if (n === 6 && prev !== 6) { try { autoSaveBingo(); } catch (e) {} }
+    if (n === 1 && prev === 6 && autoSavedFlag) { try { autoNewBingo(); } catch (e) {} }
     if (!noScroll) {
       const y = document.getElementById('stepSentinel').offsetTop;
       window.scrollTo({ top: y, behavior: 'smooth' });
@@ -3007,6 +3008,7 @@
   }
 
   function resetHistory() {
+    autoSavedFlag = false;
     history = [];
     usedNumbers.clear();
     completedRows = [];
@@ -4110,6 +4112,36 @@ async function libSaveCurrent() {
   setTimeout(() => { b.textContent = o; }, 1800);
 }
 
+let autoSavedFlag = false;
+function autoToast(msg) {
+  let t = document.getElementById('autoToast');
+  if (!t) { t = document.createElement('div'); t.id = 'autoToast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:3000;background:#1b1b26;color:#f5c518;border:1px solid #f5c518;border-radius:12px;padding:10px 16px;font:600 14px Outfit,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:90vw;text-align:center;transition:opacity .4s;opacity:0;pointer-events:none';
+    document.body.appendChild(t); }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+// Guarda solo (sin preguntar) al llegar a Resultados con números sorteados
+function autoSaveBingo() {
+  if (!history.length) return;
+  let name = getCurrentName();
+  if (!name) name = 'Bingo ' + fmtDateTime(Date.now());
+  const lib = libLoad();
+  const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
+  const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  const out = same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item);
+  if (!libStore(out)) return;
+  setCurrentName(name);
+  autoSavedFlag = true;
+  autoToast('✓ Bingo guardado: ' + name);
+}
+// Al volver al paso 1 con el bingo ya guardado: deja todo en blanco para uno nuevo
+function autoNewBingo() {
+  autoSavedFlag = false;
+  resetAll();
+  autoToast('Listo para un bingo nuevo (el anterior quedó guardado)');
+}
+
 async function libOpen(id) {
   const it = libLoad().find(x => x.id === id); if (!it) return;
   const typed = Object.values(collectNames()).some(v => v && v.trim());
@@ -4123,6 +4155,7 @@ async function libOpen(id) {
 }
 
 function applyBingo(it) {
+  autoSavedFlag = false;
   const d = it.data || {};
   if (d.minVal)       document.getElementById('minVal').value = d.minVal;
   if (d.maxVal)       document.getElementById('maxVal').value = d.maxVal;
@@ -4174,6 +4207,7 @@ async function requestResetAll() {
   resetAll();
 }
 function resetAll() {
+  autoSavedFlag = false;
   document.getElementById('minVal').value = 1;
   document.getElementById('maxVal').value = 10;
   document.getElementById('colCount').value = 2;
