@@ -2052,11 +2052,10 @@
 
 <div class="pf-modal" id="pfModal" role="dialog" aria-modal="true" aria-labelledby="pfTitle">
   <div class="pf-box">
-    <div class="pf-title" id="pfTitle">Antes de sortear</div>
+    <div class="pf-title" id="pfTitle">Todavía no se puede sortear</div>
     <div class="pf-msg" id="pfMsg"></div>
     <div class="pf-actions">
       <button class="pf-btn pf-primary" id="pfFix">Completar</button>
-      <button class="pf-btn" id="pfGo">Sortear igual</button>
     </div>
   </div>
 </div>
@@ -2570,7 +2569,7 @@
       el.innerHTML = '<div class="pf-head">✅ Todo listo para sortear</div>';
       return;
     }
-    el.innerHTML = `<div class="pf-head">${pending.length ? 'Antes de sortear' : 'Pasos omitidos'}</div>` + items.filter(it => !it.done).map(it => {
+    el.innerHTML = `<div class="pf-head">Completá estos pasos para poder sortear</div>` + items.filter(it => !it.done).map(it => {
       const cls = it.done ? 'done' : (pfIgnored[it.key] ? 'skip' : 'todo');
       const ic = it.done ? '✅' : (pfIgnored[it.key] ? '➖' : '⬜');
       return `<button type="button" class="pf-item ${cls}" onclick="pfGoto('${it.target}')">
@@ -2598,7 +2597,7 @@
     if (n !== 1) { const sv = document.getElementById('savedInvite'); if (sv) sv.classList.remove('show'); }
     if (n === 6) step5done = true;
     const b5 = document.querySelector('#stepbar button[data-step="5"]'); if (b5) b5.classList.toggle('done', step5done);
-    if (n === 5 && history.length === 0 && !fsInviteShown && !fsMode) { fsInviteShown = true; setTimeout(() => { if (curStep === 5 && !fsMode) document.getElementById('fsInvite').classList.add('show'); }, 600); }
+    if (n === 5 && history.length === 0 && !fsInviteShown && !fsMode) { fsInviteShown = true; setTimeout(() => { if (curStep === 5 && !fsMode && pfStatus().every(x => x.done)) document.getElementById('fsInvite').classList.add('show'); }, 600); }
     if (n >= 4) { try { localStorage.setItem('sorteo_step4', '1'); } catch (e) {} }
     stepSeen4();
 
@@ -2643,22 +2642,16 @@
 
   // devuelve true si se puede sortear; si no, muestra el aviso
   function preflightCheck() {
-    if (history.length > 0) return true;                       // solo antes del primer número
-    const pending = pfStatus().filter(it => !it.done && !pfIgnored[it.key]);
+    const pending = pfStatus().filter(it => !it.done);   // los pasos 1, 2 y 3 son obligatorios
     if (!pending.length) return true;
     document.getElementById('pfMsg').innerHTML =
-      'Todavía falta:<ul>' + pending.map(it => `<li>${it.warn}</li>`).join('') + '</ul>';
+      'Para sortear tenés que completar:<ul>' + pending.map(it => `<li>${it.warn}</li>`).join('') + '</ul>';
     const modal = document.getElementById('pfModal');
     modal.classList.add('show');
+    document.getElementById('pfFix').textContent = 'Ir a completar';
     document.getElementById('pfFix').onclick = () => {
       modal.classList.remove('show');
       pfGoto(pending[0].target);
-    };
-    document.getElementById('pfGo').onclick = () => {
-      modal.classList.remove('show');
-      pending.forEach(it => { pfIgnored[it.key] = true; });
-      updatePreflight();
-      spin();
     };
     return false;
   }
