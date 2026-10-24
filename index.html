@@ -2103,12 +2103,14 @@
 <div class="pay-invite" id="fsInvite" role="dialog" aria-live="polite"><b>⛶ ¿Sorteás frente a un grupo?</b><p>Podés ampliar el sorteo a pantalla completa para que todos vean la bola y los números.</p><div class="pi-row"><button onclick="fsInviteClose()">Ahora no</button><button class="pi-go" onclick="fsInviteGo()">⛶ Pantalla completa</button></div></div>
 <div class="pay-invite" id="savedInvite" role="dialog" aria-live="polite"><b id="savedTitle">✓ Bingo guardado</b><p id="savedText"></p><div class="pi-row"><button class="pi-go" onclick="document.getElementById('savedInvite').classList.remove('show')">Entendido</button></div></div>
 <div id="nameLock" role="dialog" aria-modal="true"><div class="nl-box">
-  <h3>🎱 Nuevo bingo</h3>
+  <h3 id="nlTitle">🎱 Nuevo bingo</h3>
   <p id="nlInfo"></p>
-  <p><b>Para continuar tenés que guardarlo con un nombre.</b></p>
+  <div id="nlCur" style="display:none;font-family:'Playfair Display',serif;font-size:1.3rem;color:#fff;margin:2px 0 14px;word-break:break-word"></div>
+  <p id="nlAsk"><b>Para continuar tenés que guardarlo con un nombre.</b></p>
   <input type="text" id="nlInput" maxlength="40" placeholder="Nombre, ej: Bingo del curso" autocomplete="off" oninput="nameLockCheck()" onkeydown="if(event.key==='Enter')nameLockSave()">
   <div class="nl-err" id="nlErr"></div>
   <button id="nlBtn" onclick="nameLockSave()" disabled>💾 Guardar y empezar</button>
+  <button id="nlBtn2" onclick="nameLockAlt()" style="display:none;background:transparent;color:#fff;border:1px solid var(--border)">✏️ Cambiarle el nombre</button>
 </div></div>
 <div class="go-banner" id="goBanner"><span>🎱 ¡A SORTEAR!</span></div>
 <div class="prize-big" id="prizeBig" onclick="hidePrizeBig()"></div>
@@ -4187,45 +4189,74 @@ function nlSetInert(on) {
 document.addEventListener('focusout', e => {
   if (!nameLocked) return;
   const to = e.relatedTarget;
-  if (to && to.id === 'nlBtn') return;
+  if (to && (to.id === 'nlBtn' || to.id === 'nlBtn2')) return;
   setTimeout(() => { if (nameLocked) { const i = document.getElementById('nlInput'); if (i) i.focus(); } }, 0);
 }, true);
 ['touchmove', 'wheel'].forEach(ev => document.addEventListener(ev, e => { if (nameLocked && !e.target.closest('#nameLock')) e.preventDefault(); }, { passive: false, capture: true }));
 document.addEventListener('keydown', e => { if (nameLocked && (e.key === 'Escape' || (e.key === 'Tab' && document.activeElement && document.activeElement.id === 'nlInput' && false))) e.preventDefault(); }, true);
-function showNameLock(info, prefill) {
+let nlMode = 'new';   // 'new' (poner nombre) | 'cont' (seguir con el actual) | 'rename' (cambiar nombre del actual)
+function nlRender() {
+  const inp = document.getElementById('nlInput'), cur = getCurrentName();
+  const isNew = nlMode === 'new', isCont = nlMode === 'cont', isRen = nlMode === 'rename';
+  document.getElementById('nlTitle').textContent = isNew ? '🎱 Nuevo bingo' : (isCont ? '🎱 Bingo en curso' : '✏️ Cambiar nombre');
+  const curBox = document.getElementById('nlCur'); curBox.style.display = isCont ? 'block' : 'none'; curBox.textContent = cur;
+  document.getElementById('nlAsk').style.display = isCont ? 'none' : 'block';
+  document.getElementById('nlAsk').innerHTML = isRen ? '<b>Escribí el nombre nuevo.</b> Es el mismo bingo, solo cambia cómo se llama.' : '<b>Para continuar tenés que guardarlo con un nombre.</b>';
+  inp.style.display = isCont ? 'none' : 'block';
+  const b = document.getElementById('nlBtn'), b2 = document.getElementById('nlBtn2');
+  b.textContent = isNew ? '💾 Guardar y empezar' : (isCont ? '▶ Continuar con este bingo' : '💾 Guardar nombre y continuar');
+  b2.style.display = isNew ? 'none' : 'block';
+  b2.textContent = isCont ? '✏️ Cambiarle el nombre' : 'Volver';
+  document.getElementById('nlInfo').style.display = isRen ? 'none' : 'block';
+  document.getElementById('nlErr').textContent = '';
+  b.disabled = isCont ? false : !inp.value.trim();
+}
+function showNameLock(info, prefill, mode) {
   nameLocked = true; nlSetInert(true);
   try { localStorage.setItem('sorteo_namelock', '1'); } catch (e) {}
-  document.getElementById('nlInfo').innerHTML = info || 'Ponele un nombre al bingo nuevo.';
-  const inp = document.getElementById('nlInput'); inp.value = prefill || '';
-  document.getElementById('nlErr').textContent = '';
-  document.getElementById('nlBtn').disabled = !(prefill || '').trim();
+  nlMode = mode || 'new';
+  document.getElementById('nlInfo').innerHTML = info || '';
+  document.getElementById('nlInput').value = prefill || '';
+  nlRender();
   document.getElementById('nameLock').classList.add('show');
-  setTimeout(() => { try { inp.focus(); } catch (e) {} }, 150);
+  setTimeout(() => { try { if (nlMode !== 'cont') document.getElementById('nlInput').focus(); } catch (e) {} }, 150);
 }
-function nameLockCheck() {
-  const v = document.getElementById('nlInput').value.trim();
-  document.getElementById('nlBtn').disabled = !v;
-  document.getElementById('nlErr').textContent = '';
+function nameLockCheck() { nlRender(); }
+function nameLockAlt() {            // botón secundario
+  if (nlMode === 'cont') { nlMode = 'rename'; document.getElementById('nlInput').value = getCurrentName(); nlRender(); setTimeout(() => { const i = document.getElementById('nlInput'); i.focus(); i.select(); }, 50); }
+  else if (nlMode === 'rename') { nlMode = 'cont'; nlRender(); }
+}
+function nlClose(msg) {
+  nameLocked = false; nlSetInert(false);
+  try { localStorage.removeItem('sorteo_namelock'); } catch (e) {}
+  document.getElementById('nameLock').classList.remove('show');
+  if (msg) autoToast(msg);
 }
 function nameLockSave() {
-  const inp = document.getElementById('nlInput'), name = inp.value.trim();
+  const inp = document.getElementById('nlInput'), err = document.getElementById('nlErr');
+  const lib = libLoad(), cur = getCurrentName();
+  if (nlMode === 'cont') {                 // seguir tal cual: solo se asegura de que esté guardado
+    const same = lib.find(x => x.name === cur);
+    const item = { id: same ? same.id : 'b' + Date.now().toString(36), name: cur, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+    libStore(same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item));
+    nlClose('▶ Seguís con: ' + cur); return;
+  }
+  const name = inp.value.trim();
   if (!name) return;
-  const lib = libLoad();
-  const cur = getCurrentName();
-  const same = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
-  if (same && !(cur && cur.toLowerCase() === name.toLowerCase())) { document.getElementById('nlErr').textContent = 'Ya existe un bingo con ese nombre. Elegí otro.'; inp.focus(); return; }
-  const item = { id: same ? same.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
-  if (!libStore(same ? lib.map(x => x.id === same.id ? item : x) : lib.concat(item))) { document.getElementById('nlErr').textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
+  const clash = lib.find(x => x.name.toLowerCase() === name.toLowerCase());
+  const cur0 = lib.find(x => x.name === cur);
+  if (clash && !(nlMode === 'rename' && cur0 && clash.id === cur0.id)) { err.textContent = 'Ya existe un bingo con ese nombre. Elegí otro.'; inp.focus(); return; }
+  const target = nlMode === 'rename' ? cur0 : null;      // renombrar = el mismo bingo, no una copia
+  const item = { id: target ? target.id : 'b' + Date.now().toString(36), name, savedAt: Date.now(), data: collectConfig(), state: collectState() };
+  if (!libStore(target ? lib.map(x => x.id === target.id ? item : x) : lib.concat(item))) { err.textContent = 'No se pudo guardar. Probá de nuevo.'; return; }
   setCurrentName(name);
-  try { localStorage.removeItem('sorteo_namelock'); } catch (e) {}
-  nameLocked = false; nlSetInert(false);
-  document.getElementById('nameLock').classList.remove('show');
-  autoToast('✓ Bingo guardado: ' + name);
+  nlClose('✓ Bingo guardado: ' + name);
 }
 // si se recargó la página con el nombre pendiente, vuelve a pedirlo
 setTimeout(() => {
   const cur = getCurrentName();
-  showNameLock(cur ? 'Seguís con el bingo <b>«' + esc(cur) + '»</b>. Dejalo con ese nombre o cambialo para empezar.' : 'Ponele un nombre a tu bingo para empezar.', cur);
+  if (cur) showNameLock('Estás en este bingo:', '', 'cont');
+  else showNameLock('Ponele un nombre a tu bingo para empezar.', '', 'new');
 }, 400);
 
 async function libOpen(id) {
