@@ -1835,7 +1835,7 @@
         </div>
       </div>
     </div>
-
+    <button class="btn-reset btn-resetall" style="margin:14px 0 0;width:100%" onclick="requestResetAll()">🗑 Restablecer todo</button>
   </div>
 
   <!-- PLANILLA ABAJO -->
@@ -1998,6 +1998,10 @@
       <button class="btn-reset" onclick="requestReset()">↺ Reiniciar historial</button>
       <button class="btn-reset" onclick="openShare()" style="margin-left:8px;">📤 Compartir / imprimir</button>
       <button class="btn-reset" onclick="openFS('history')" style="margin-left:8px;">🕘 Ver historial completo</button>
+    </div>
+    <div class="new-bingo-box" style="margin-top:18px;text-align:center">
+      <p style="margin:0 0 10px;font-size:.9rem;color:#e8e8f0;line-height:1.4">Para realizar un <b>nuevo bingo</b> pulsá este botón: se guarda este bingo y se vuelve al paso 1 con todo en blanco.</p>
+      <button class="pay-next" style="margin:0" onclick="newBingo()">🎱 Nuevo bingo ➜</button>
     </div>
   </div>
 
@@ -2576,7 +2580,6 @@
     if (pf) pf.classList.toggle('step-off', n !== 5);
     if (n !== 5) { try { wantBack = false; updateBack(); } catch (e) {} }
     if (n === 6 && prev !== 6) { try { autoSaveBingo(); } catch (e) {} }
-    if (n === 1 && prev === 6 && autoSavedFlag) { try { autoNewBingo(); } catch (e) {} }
     if (!noScroll) {
       const y = document.getElementById('stepSentinel').offsetTop;
       window.scrollTo({ top: y, behavior: 'smooth' });
@@ -4152,14 +4155,19 @@ function autoSaveBingo() {
   autoSavedFlag = true;
   autoToast('✓ Bingo guardado: ' + name);
 }
-// Al volver al paso 1 con el bingo ya guardado: deja todo en blanco para uno nuevo
-function autoNewBingo() {
-  const nm = getCurrentName();
+// Botón "Nuevo bingo" del paso 6: guarda (mismo nombre o fecha y hora), restablece todo y va al paso 1
+function newBingo() {
+  if (isSpinning) return;
+  let nm = '';
+  if (history.length) { autoSaveBingo(); nm = getCurrentName(); }
   autoSavedFlag = false;
   resetAll();
-  document.getElementById('savedTitle').textContent = '✓ Bingo guardado';
-  document.getElementById('savedText').innerHTML = 'Se guardó con el nombre <b>«' + esc(nm) + '»</b>. Lo encontrás en «Mis bingos guardados». Ya podés armar uno nuevo desde cero.';
-  document.getElementById('savedInvite').classList.add('show');
+  const sv = document.getElementById('savedInvite');
+  if (nm) {
+    document.getElementById('savedTitle').textContent = '✓ Bingo guardado';
+    document.getElementById('savedText').innerHTML = 'Se guardó con el nombre <b>«' + esc(nm) + '»</b>. Lo encontrás en «Mis bingos guardados». Ya podés armar uno nuevo desde cero.';
+    sv.classList.add('show');
+  }
 }
 
 async function libOpen(id) {
