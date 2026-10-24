@@ -4306,12 +4306,17 @@ async function requestResetAll() {
       <li>La planilla y los nombres de los participantes</li>
       <li>Los premios y los pagos</li>
       <li>Los números sorteados, los ganadores y el historial</li>
+      <li>La personalización: ícono, frase, avatares, mensaje final, estilo, color, tamaño de texto y zoom de la planilla</li>
     </ul>
-    <div class="cf-keep">Se conservan: tus bingos guardados, el sonido y la personalización (ícono, frase, mensaje final, estilo y color).</div>`,
+    <div class="cf-keep">Se conservan: tus bingos guardados y el sonido.</div>`,
     buttons: [{ id: 'cancel', label: 'Cancelar' }, { id: 'pdf', label: '📄 Guardar PDF y restablecer' }, { id: 'ok', label: 'Sí, restablecer todo', danger: true }] });
   if (r === 'cancel') return;
   if (r === 'pdf') { try { await rptAction('pdf', true); } catch (e) {} }
   resetAll();
+  // también borra la personalización y vuelve a cargar con los valores de fábrica
+  ['sorteo_avatars', 'sorteo_av_left', 'sorteo_av_right', 'sorteo_tagline', 'sorteo_thanks', 'sorteo_mark_icon', 'sorteo_draw_style',
+   'sorteo_ball_color', 'sorteo_autogo', 'sorteo_repeat2', 'sorteo_font', 'sorteo_gridzoom', 'sorteo_namelock'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  location.reload();
 }
 function resetAll() {
   autoSavedFlag = false;
