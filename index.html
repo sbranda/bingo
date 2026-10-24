@@ -1102,6 +1102,7 @@
   }
   .prize-row .btn-del { margin-left: auto; }
 
+  .prize-note { margin: 4px 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
   .prize-pos {
     font-family: 'Playfair Display', serif;
     font-weight: 700;
@@ -1865,7 +1866,7 @@
     <div class="panel-title"><span class="step-num">3</span> Premios</div>
     <div id="prizeList"></div>
     <input type="file" id="prizeFile" accept="image/*" hidden onchange="prizePhotoPicked(this)">
-    <button class="btn-sm" style="margin-top:4px;padding:7px 16px;font-size:0.85rem;" onclick="addPrize()">+ Agregar premio</button>
+    <p class="prize-note" id="prizeNote">La cantidad de premios es la misma que la de ganadores (Paso 1). Para cambiarla, modificá “Ganadores”.</p>
   </div>
 
   <!-- PASO 4: PERSONALIZAR -->
@@ -2852,7 +2853,6 @@
           <button class="prize-photo${p.img ? ' has' : ''}" onclick="prizePhoto(${i})" title="${p.img ? 'Cambiar foto' : 'Agregar foto'}" aria-label="Foto del premio">${p.img ? `<img src="${p.img}" alt="">` : '📷'}</button>
           ${p.img ? `<button class="btn-del" onclick="prizePhotoClear(${i})" title="Quitar foto" style="font-size:.8rem">🗑</button>` : ''}
         `}
-        <button class="btn-del" onclick="removePrize(${i})" title="Quitar">×</button>
       </div>
     `).join('');
   }
@@ -3925,6 +3925,7 @@
   renderPrizes();
   const _loaded = loadSaved();
   if (!_loaded) buildGrid();
+  syncPrizesFromWinners();      // premios = ganadores
   displayMin.textContent = document.getElementById('minVal').value;
   displayMax.textContent = document.getElementById('maxVal').value;
   wheelLabels = idleWheelLabels();
@@ -3992,7 +3993,7 @@ function openHelp() {
     <ul class="help-list">
       ${st(1, '<b>Configuración:</b> elegí desde qué número hasta cuál, las columnas y cuántos ganadores. Tocá <b>Generar planilla</b>.')}
       ${st(2, '<b>Planilla:</b> escribí el nombre de cada participante en su fila.')}
-      ${st(3, '<b>Premios:</b> agregá un premio por cada ganador (dinero u objeto).')}
+      ${st(3, '<b>Premios:</b> hay un premio por cada ganador (dinero u objeto, con foto si querés).')}
       ${st(4, '<b>Personalizar</b> (opcional): ícono de marca, frase, mensaje final, estilo y color.')}
       ${st(5, '<b>Sorteo:</b> tocá la bola o la rueda para sacar un número. Se marca solo en la planilla.')}
       ${st(6, '<b>Resultados:</b> historial, deshacer el último número, reiniciar y compartir o imprimir.')}
@@ -4097,7 +4098,7 @@ function applyBingo(it) {
   if (d.colCount)     document.getElementById('colCount').value = d.colCount;
   if (d.winnersCount) document.getElementById('winnersCount').value = d.winnersCount;
   const rep = document.getElementById('allowRepeat'); rep.checked = !!d.allowRepeat; rep.dispatchEvent(new Event('change', { bubbles: true }));
-  prizes = JSON.parse(JSON.stringify(d.prizes || [])); renderPrizes();
+  prizes = JSON.parse(JSON.stringify(d.prizes || [])); syncPrizesFromWinners();
   pay = d.pay ? { on: !!d.pay.on, price: d.pay.price || '', paid: d.pay.paid || {} } : { on: false, price: '', paid: {} }; paySave();
   buildGrid();
   Object.entries(d.participantNames || {}).forEach(([r, v]) => { const i = document.getElementById(`ri-${r}`); if (i) i.value = v; });
