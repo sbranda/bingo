@@ -2083,6 +2083,7 @@
 <footer class="app-footer">Desarrollado por @sebranda</footer>
 
 <div class="pay-invite" id="payInvite" role="dialog" aria-live="polite"><b>✅ ¡Lista de participantes completa!</b><p>Ahora podés anotar quién ya pagó, para ver cuánto se cobró y cuánto falta.</p><div class="pi-row"><button onclick="payInviteClose()">Ahora no</button><button class="pi-go" onclick="payInviteGo()">💲 Completar pagos</button></div></div>
+<div class="pay-invite" id="prizeInvite" role="dialog" aria-live="polite"><b>✅ ¡Premios completos!</b><p>Si querés, podés personalizar el sorteo (ícono, frase, avatares, estilo y color). Es opcional.</p><div class="pi-row"><button onclick="prizeInviteClose()">Dejarlo para después</button><button class="pi-go" onclick="prizeInviteGo()">🎨 Ir al paso 4</button></div></div>
 <div class="go-banner" id="goBanner"><span>🎱 ¡A SORTEAR!</span></div>
 <div class="prize-big" id="prizeBig" onclick="hidePrizeBig()"></div>
 <!-- confetti container -->
@@ -2113,7 +2114,7 @@
     if (isNaN(cols) || cols < 1 || cols > 6) { alert('Columnas: entre 1 y 6.'); return; }
 
     gridMin = mn; gridMax = mx; gridCols = cols;
-    if (fromUser === true) { goShown = false; payInvited = false; payInviteClose(); pay = { on: false, price: '', paid: {} }; paySave(); clearState(); prizes = []; syncPrizesFromWinners(); try { saveAll(); } catch (e) {} }
+    if (fromUser === true) { goShown = false; payInvited = false; payInviteClose(); prizeInvited = false; prizeInviteClose(); pay = { on: false, price: '', paid: {} }; paySave(); clearState(); prizes = []; syncPrizesFromWinners(); try { saveAll(); } catch (e) {} }
     displayMin.textContent = mn;
     displayMax.textContent = mx;
     usedNumbers.clear();
@@ -2208,6 +2209,32 @@
       document.getElementById('payInvite').classList.add('show');
     }, 1400);
   }
+
+  // ── INVITACIÓN AL PASO 4 (al completar los premios) ──
+  let prizeInvited = false, pinvT = null;
+  function prizeInviteClose() { document.getElementById('prizeInvite').classList.remove('show'); }
+  function prizeInviteGo() { prizeInviteClose(); setStep(4); }
+  function prizesComplete() {
+    const winners = Math.max(1, parseInt(document.getElementById('winnersCount').value) || 1);
+    for (let i = 0; i < winners; i++) {
+      const pz = prizes[i]; if (!pz) return false;
+      const ok = (pz.type === 'money' && parseFloat(pz.amount) > 0) || (pz.desc && pz.desc.trim());
+      if (!ok) return false;
+    }
+    return true;
+  }
+  function checkPrizeInvite() {
+    clearTimeout(pinvT);
+    pinvT = setTimeout(() => {
+      if (prizeInvited || fsMode || curStep !== 3 || !prizesComplete()) return;
+      const a = document.activeElement;
+      if (a && a.closest && a.closest('#panelPrizes') && /INPUT|TEXTAREA/.test(a.tagName)) { checkPrizeInvite(); return; }   // sigue escribiendo
+      prizeInvited = true;
+      document.getElementById('prizeInvite').classList.add('show');
+    }, 1600);
+  }
+  document.getElementById('panelPrizes').addEventListener('input', checkPrizeInvite);
+  document.getElementById('panelPrizes').addEventListener('change', checkPrizeInvite);
 
   // ── PAGOS ──
   let pay = { on: false, price: '', paid: {} };
@@ -2520,6 +2547,8 @@
   function setStep(n, noScroll, quiet) {
     const prev = curStep;
     curStep = n;
+    if (n !== 3) { const pi = document.getElementById('prizeInvite'); if (pi) pi.classList.remove('show'); }
+    if (n !== 2) { const qi = document.getElementById('payInvite'); if (qi) qi.classList.remove('show'); }
     if (n >= 4) { try { localStorage.setItem('sorteo_step4', '1'); } catch (e) {} }
     stepSeen4();
 
